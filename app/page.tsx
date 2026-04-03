@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import { getDb } from '@/lib/db';
 
+interface Competition {
+  id: number;
+  name: string;
+  type: string;
+  member_count: number;
+  played_count: number;
+  total_matches: number;
+}
+
 async function getStats() {
   try {
     const sql = getDb();
@@ -22,7 +31,7 @@ async function getStats() {
       (sum: number, c: Record<string, unknown>) => sum + (parseInt(String(c.played_count)) || 0),
       0
     );
-    return { memberCount: members.length, competitionCount: competitions.length, totalPlayed, competitions };
+    return { memberCount: members.length, competitionCount: competitions.length, totalPlayed, competitions: competitions as unknown as Competition[] };
   } catch {
     return { memberCount: 0, competitionCount: 0, totalPlayed: 0, competitions: [] };
   }
@@ -76,10 +85,7 @@ export default async function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {stats.competitions.slice(0, 5).map((c: {
-                  id: number; name: string; type: string;
-                  member_count: number; played_count: number; total_matches: number
-                }) => (
+                {stats.competitions.slice(0, 5).map((c) => (
                   <tr key={c.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
                     <td className="px-4 py-3">{c.name}</td>
                     <td className="px-4 py-3">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
