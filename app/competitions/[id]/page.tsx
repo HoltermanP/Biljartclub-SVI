@@ -121,7 +121,7 @@ function StandingsTab({ standings }: { standings: Standing[] }) {
       <table className="w-full">
         <thead>
           <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-            {['#', 'Naam', 'P', 'Pts', 'Gem pts', 'Gem car', 'W', 'R', 'V', 'Hoogste serie'].map((h) => (
+            {['#', 'Naam', 'Partijen', 'Punten', 'Gem. punten', 'Gem. caramboles', 'Gewonnen', 'Remise', 'Verloren', 'Hoogste serie'].map((h) => (
               <th key={h} className="text-left px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: '#c9a84c' }}>{h}</th>
             ))}
           </tr>
