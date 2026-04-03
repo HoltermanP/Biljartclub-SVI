@@ -19,7 +19,7 @@ async function getStats() {
       `,
     ]);
     const totalPlayed = competitions.reduce(
-      (sum: number, c: { played_count: string }) => sum + (parseInt(c.played_count) || 0),
+      (sum: number, c: Record<string, unknown>) => sum + (parseInt(String(c.played_count)) || 0),
       0
     );
     return { memberCount: members.length, competitionCount: competitions.length, totalPlayed, competitions };
