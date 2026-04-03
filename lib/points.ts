@@ -8,7 +8,7 @@
  * Bonussen (na afronding basispunten):
  *   + 2 punten bij winst
  *   + 1 punt  bij remise (beide spelers)
- *   + 3 punten als partijgemiddelde > persoonlijk gemiddelde
+ *   + 2 punten als partijgemiddelde > persoonlijk gemiddelde
  *
  * Partijgemiddelde = totaal caramboles / 30 beurten
  */
@@ -47,7 +47,7 @@ export function calculatePoints(result: MatchResult): PointBreakdown {
   const winBonus = won ? 2 : 0;
   const drawBonus = isDraw ? 1 : 0;
   const aboveMoyenne = matchAverage > moyenne;
-  const aboveMoyenneBonus = aboveMoyenne ? 3 : 0;
+  const aboveMoyenneBonus = aboveMoyenne ? 2 : 0;
 
   const total = basePoints + winBonus + drawBonus + aboveMoyenneBonus;
 
