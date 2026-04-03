@@ -1,14 +1,23 @@
 import Link from 'next/link';
+import { getDb } from '@/lib/db';
 
 async function getStats() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const [membersRes, compsRes] = await Promise.all([
-      fetch(`${baseUrl}/api/members`, { cache: 'no-store' }),
-      fetch(`${baseUrl}/api/competitions`, { cache: 'no-store' }),
+    const sql = getDb();
+    const [members, competitions] = await Promise.all([
+      sql`SELECT id FROM members`,
+      sql`
+        SELECT c.id, c.name, c.type,
+          COUNT(DISTINCT cm.member_id) as member_count,
+          COUNT(DISTINCT CASE WHEN m.status='played' THEN m.id END) as played_count,
+          COUNT(DISTINCT m.id) as total_matches
+        FROM competitions c
+        LEFT JOIN competition_members cm ON cm.competition_id = c.id
+        LEFT JOIN matches m ON m.competition_id = c.id
+        GROUP BY c.id
+        ORDER BY c.id DESC
+      `,
     ]);
-    const members = membersRes.ok ? await membersRes.json() : [];
-    const competitions = compsRes.ok ? await compsRes.json() : [];
     const totalPlayed = competitions.reduce(
       (sum: number, c: { played_count: string }) => sum + (parseInt(c.played_count) || 0),
       0
