@@ -46,7 +46,7 @@ export function calculatePoints(result: MatchResult): PointBreakdown {
   // Bonussen na afronding
   const winBonus = won ? 2 : 0;
   const drawBonus = isDraw ? 1 : 0;
-  const aboveMoyenne = matchAverage > moyenne;
+  const aboveMoyenne = caramboles > moyenne;
   const aboveMoyenneBonus = aboveMoyenne ? 2 : 0;
 
   const total = basePoints + winBonus + drawBonus + aboveMoyenneBonus;
