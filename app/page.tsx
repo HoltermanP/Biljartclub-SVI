@@ -1,65 +1,116 @@
-import Image from "next/image";
+import Link from 'next/link';
 
-export default function Home() {
+async function getStats() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const [membersRes, compsRes] = await Promise.all([
+      fetch(`${baseUrl}/api/members`, { cache: 'no-store' }),
+      fetch(`${baseUrl}/api/competitions`, { cache: 'no-store' }),
+    ]);
+    const members = membersRes.ok ? await membersRes.json() : [];
+    const competitions = compsRes.ok ? await compsRes.json() : [];
+    const totalPlayed = competitions.reduce(
+      (sum: number, c: { played_count: string }) => sum + (parseInt(c.played_count) || 0),
+      0
+    );
+    return { memberCount: members.length, competitionCount: competitions.length, totalPlayed, competitions };
+  } catch {
+    return { memberCount: 0, competitionCount: 0, totalPlayed: 0, competitions: [] };
+  }
+}
+
+export default async function Dashboard() {
+  const stats = await getStats();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div>
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold mb-2" style={{ color: '#c9a84c' }}>
+          Biljartclub SVI
+        </h1>
+        <p style={{ color: 'rgba(245,230,200,0.7)' }}>Carambolebiljarten &mdash; Competitiemanagement</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <StatCard label="Leden" value={stats.memberCount} icon="👤" href="/members" />
+        <StatCard label="Competities" value={stats.competitionCount} icon="🏆" href="/competitions" />
+        <StatCard label="Gespeelde partijen" value={stats.totalPlayed} icon="🎱" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <NavCard
+          title="Ledenbeheer"
+          description="Bekijk, voeg toe of bewerk clubleden en hun moyennes."
+          href="/members"
+          icon="👤"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <NavCard
+          title="Competities"
+          description="Beheer competities, bekijk ranglijsten en gespeelde partijen."
+          href="/competitions"
+          icon="🏆"
+        />
+      </div>
+
+      {stats.competitions.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4" style={{ color: '#c9a84c' }}>Recente competities</h2>
+          <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+            <table className="w-full">
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Type</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Deelnemers</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Partijen</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.competitions.slice(0, 5).map((c: {
+                  id: number; name: string; type: string;
+                  member_count: number; played_count: number; total_matches: number
+                }) => (
+                  <tr key={c.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                    <td className="px-4 py-3">{c.name}</td>
+                    <td className="px-4 py-3">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
+                    <td className="px-4 py-3">{c.member_count}</td>
+                    <td className="px-4 py-3">{c.played_count}/{c.total_matches}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/competitions/${c.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#c9a84c' }}>
+                        Bekijken →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
     </div>
+  );
+}
+
+function StatCard({ label, value, icon, href }: { label: string; value: number; icon: string; href?: string }) {
+  const content = (
+    <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1.5rem' }} className="text-center">
+      <div className="text-3xl mb-1">{icon}</div>
+      <div className="text-4xl font-bold mb-1" style={{ color: '#c9a84c' }}>{value}</div>
+      <div style={{ color: 'rgba(245,230,200,0.7)' }}>{label}</div>
+    </div>
+  );
+  if (href) return <Link href={href}>{content}</Link>;
+  return content;
+}
+
+function NavCard({ title, description, href, icon }: { title: string; description: string; href: string; icon: string }) {
+  return (
+    <Link href={href} style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1.5rem', display: 'block' }}
+      className="transition-colors hover:opacity-90">
+      <div className="text-2xl mb-2">{icon}</div>
+      <h2 className="text-xl font-bold mb-1" style={{ color: '#c9a84c' }}>{title}</h2>
+      <p style={{ color: 'rgba(245,230,200,0.7)' }}>{description}</p>
+    </Link>
   );
 }
