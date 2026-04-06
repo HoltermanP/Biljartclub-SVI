@@ -240,32 +240,33 @@ export default function MatchPage() {
   // PHASE: Choose starting player
   if (phase === 'choose_start') {
     return (
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-2 text-center" style={{ color: '#c9a84c' }}>Partij starten</h1>
+      <div className="max-w-lg mx-auto px-1">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-center" style={{ color: '#c9a84c' }}>Partij starten</h1>
         <p className="text-center mb-2" style={{ color: 'rgba(245,230,200,0.7)' }}>Wie begint?</p>
         <p className="text-center mb-6 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
           De beginspeler speelt met ⚪ (wit)
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {[
             { id: match.player1_id, name: match.player1_name },
             { id: match.player2_id, name: match.player2_name },
           ].map((p) => (
             <button
+              type="button"
               key={p.id}
               onClick={() => handleChooseStart(p.id)}
               style={{
                 backgroundColor: '#1a4731',
                 border: '2px solid rgba(201,168,76,0.4)',
                 borderRadius: '0.75rem',
-                padding: '2rem 1rem',
+                padding: '1.5rem 1rem',
                 textAlign: 'center',
                 cursor: 'pointer',
               }}
-              className="hover:border-yellow-500 transition-colors">
-              <div className="text-5xl mb-3">🎱</div>
-              <div className="text-xl font-bold" style={{ color: '#f5e6c8' }}>{p.name}</div>
-              <div className="text-sm mt-2" style={{ color: 'rgba(245,230,200,0.5)' }}>Tik om te beginnen</div>
+              className="min-h-[120px] sm:min-h-[140px] active:scale-[0.99] hover:border-yellow-500 transition-colors">
+              <div className="text-4xl sm:text-5xl mb-2 sm:mb-3">🎱</div>
+              <div className="text-lg sm:text-xl font-bold break-words px-1" style={{ color: '#f5e6c8' }}>{p.name}</div>
+              <div className="text-xs sm:text-sm mt-2" style={{ color: 'rgba(245,230,200,0.5)' }}>Tik om te beginnen</div>
             </button>
           ))}
         </div>
@@ -310,8 +311,8 @@ export default function MatchPage() {
     );
 
     return (
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2 text-center" style={{ color: '#c9a84c' }}>Partij afgelopen</h1>
+      <div className="max-w-2xl mx-auto px-1">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2 text-center" style={{ color: '#c9a84c' }}>Partij afgelopen</h1>
         <div className="text-center mb-6">
           {isDraw ? (
             <span className="text-xl font-bold" style={{ color: '#facc15' }}>Remise!</span>
@@ -320,7 +321,7 @@ export default function MatchPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           {[
             { player: { id: match.player1_id, name: match.player1_name, ball: '⚪', moyenne: parseFloat(String(match.player1_moyenne)) }, stats: p1, won: winnerId === match.player1_id, fr: finishResult?.p1 },
             { player: { id: match.player2_id, name: match.player2_name, ball: '🟡', moyenne: parseFloat(String(match.player2_moyenne)) }, stats: p2, won: winnerId === match.player2_id, fr: finishResult?.p2 },
@@ -354,9 +355,11 @@ export default function MatchPage() {
           ))}
         </div>
 
-        <div className="text-center">
+        <div className="text-center px-1">
           <button
+            type="button"
             onClick={() => router.push(`/competitions/${match.competition_id}`)}
+            className="w-full sm:w-auto min-h-[48px]"
             style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.75rem 2rem', borderRadius: '0.375rem', fontSize: '1rem' }}>
             ← Terug naar competitie
           </button>
@@ -383,7 +386,7 @@ export default function MatchPage() {
       )}
 
       {/* Scoreboard grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
         {[
           { state: p1State, avg: p1Avg, isActive: activePlayerId === p1State.id, turnCount: p1TurnCount },
           { state: p2State, avg: p2Avg, isActive: activePlayerId === p2State.id, turnCount: p2TurnCount },
@@ -394,50 +397,52 @@ export default function MatchPage() {
               backgroundColor: '#1a4731',
               border: `2px solid ${isActive ? '#c9a84c' : 'rgba(201,168,76,0.2)'}`,
               borderRadius: '0.75rem',
-              padding: '1rem',
+              padding: '0.65rem 0.5rem sm:p-4',
               opacity: isActive ? 1 : 0.7,
             }}>
             {/* Active indicator ball */}
             {isActive && (
-              <div className="text-center text-4xl mb-2">{state.ball}</div>
+              <div className="text-center text-2xl sm:text-4xl mb-1 sm:mb-2">{state.ball}</div>
             )}
 
-            <div className="font-bold text-center mb-2" style={{ color: isActive ? '#c9a84c' : '#f5e6c8', fontSize: isActive ? '1.125rem' : '1rem' }}>
+            <div
+              className={`font-bold text-center mb-1 sm:mb-2 break-words line-clamp-3 ${isActive ? 'text-xs sm:text-lg' : 'text-[0.7rem] sm:text-base'}`}
+              style={{ color: isActive ? '#c9a84c' : '#f5e6c8' }}>
               {state.name}
             </div>
 
             {/* Big caramboles count */}
-            <div className="text-center mb-2">
-              <span className="font-bold" style={{ fontSize: isActive ? '3rem' : '2rem', color: '#c9a84c', lineHeight: 1 }}>
+            <div className="text-center mb-1 sm:mb-2">
+              <span className="font-bold tabular-nums" style={{ fontSize: isActive ? 'clamp(1.75rem, 8vw, 3rem)' : 'clamp(1.25rem, 6vw, 2rem)', color: '#c9a84c', lineHeight: 1 }}>
                 {state.totalCaramboles}
               </span>
               {isActive && state.currentBeurtCaramboles > 0 && (
-                <span className="ml-2 text-xl font-bold" style={{ color: '#4ade80' }}>
+                <span className="ml-1 sm:ml-2 text-base sm:text-xl font-bold" style={{ color: '#4ade80' }}>
                   +{state.currentBeurtCaramboles}
                 </span>
               )}
             </div>
 
-            <div className="text-sm space-y-1" style={{ color: 'rgba(245,230,200,0.8)' }}>
-              <div className="flex justify-between">
-                <span>Gem.</span>
-                <span>{avg.toFixed(3)}</span>
+            <div className="text-[0.65rem] sm:text-sm space-y-0.5 sm:space-y-1" style={{ color: 'rgba(245,230,200,0.8)' }}>
+              <div className="flex justify-between gap-1">
+                <span className="shrink-0">Gem.</span>
+                <span className="tabular-nums text-right">{avg.toFixed(3)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Moyenne</span>
-                <span style={{ color: '#c9a84c' }}>{state.moyenne.toFixed(2)}</span>
+              <div className="flex justify-between gap-1">
+                <span className="shrink-0">Moy.</span>
+                <span className="tabular-nums" style={{ color: '#c9a84c' }}>{state.moyenne.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>H. serie</span>
+              <div className="flex justify-between gap-1">
+                <span className="shrink-0">H. serie</span>
                 <span>{state.highestSerie}</span>
               </div>
             </div>
 
             {/* Current beurt counter */}
             {isActive && (
-              <div className="mt-3 text-center">
-                <div className="text-xs mb-1" style={{ color: 'rgba(245,230,200,0.6)' }}>Huidige beurt</div>
-                <div className="text-3xl font-bold" style={{ color: '#4ade80' }}>
+              <div className="mt-2 sm:mt-3 text-center">
+                <div className="text-[0.6rem] sm:text-xs mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.6)' }}>Huidige beurt</div>
+                <div className="text-2xl sm:text-3xl font-bold tabular-nums" style={{ color: '#4ade80' }}>
                   {state.currentBeurtCaramboles}
                 </div>
               </div>
@@ -447,70 +452,79 @@ export default function MatchPage() {
       </div>
 
       {/* Beurtnummer groot in het midden */}
-      <div className="text-center my-3">
-        <div className="text-xs uppercase tracking-widest mb-1" style={{ color: 'rgba(245,230,200,0.5)' }}>Beurt</div>
-        <div style={{ fontSize: '4.5rem', fontWeight: 900, lineHeight: 1, color: '#c9a84c' }}>
+      <div className="text-center my-2 sm:my-3">
+        <div className="text-[0.65rem] sm:text-xs uppercase tracking-widest mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.5)' }}>Beurt</div>
+        <div className="tabular-nums" style={{ fontSize: 'clamp(3rem, 18vw, 4.5rem)', fontWeight: 900, lineHeight: 1, color: '#c9a84c' }}>
           {currentTurnNumber}
         </div>
-        <div className="text-sm mt-1" style={{ color: 'rgba(245,230,200,0.4)' }}>van {MAX_TURNS}</div>
+        <div className="text-xs sm:text-sm mt-1" style={{ color: 'rgba(245,230,200,0.4)' }}>van {MAX_TURNS}</div>
       </div>
 
       {/* Controls */}
-      <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
-        <div className="text-center mb-1 text-sm" style={{ color: 'rgba(245,230,200,0.6)' }}>
+      <div className="p-3 sm:p-4" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+        <div className="text-center mb-2 text-xs sm:text-sm line-clamp-2 px-1" style={{ color: 'rgba(245,230,200,0.6)' }}>
           {activeState.name} aan de beurt
         </div>
 
         {/* +1 / teller / -1 */}
         <div className="flex gap-2 mb-3">
           <button
+            type="button"
             onClick={removeCarambole}
+            className="min-h-[56px] min-w-[56px] sm:min-h-[72px] sm:min-w-[72px]"
             style={{
               backgroundColor: '#235e3f',
               border: '2px solid rgba(201,168,76,0.5)',
               borderRadius: '0.75rem',
-              padding: '1rem',
-              fontSize: '2rem',
+              padding: '0.75rem',
+              fontSize: 'clamp(1.5rem, 6vw, 2rem)',
               fontWeight: 700,
               color: 'rgba(201,168,76,0.7)',
               cursor: 'pointer',
-              width: '72px',
               flexShrink: 0,
-            }}>
+            }}
+            aria-label="Een carambole minder">
             −
           </button>
           <button
+            type="button"
             onClick={addCarambole}
+            className="min-h-[56px] sm:min-h-[72px]"
             style={{
               flex: 1,
               backgroundColor: '#235e3f',
               border: '2px solid #c9a84c',
               borderRadius: '0.75rem',
-              padding: '1.5rem',
-              fontSize: '3rem',
+              padding: '1rem 0.75rem',
+              fontSize: 'clamp(1.75rem, 7vw, 3rem)',
               fontWeight: 700,
               color: '#c9a84c',
               cursor: 'pointer',
-            }}>
+            }}
+            aria-label="Carambole toevoegen">
             + {activeState.currentBeurtCaramboles}
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <button
+            type="button"
             onClick={finishTurn}
+            className="min-h-[48px]"
             style={{
               backgroundColor: '#c9a84c',
               color: '#0d2b1e',
               fontWeight: 700,
               padding: '0.75rem',
               borderRadius: '0.5rem',
-              fontSize: '1rem',
+              fontSize: '0.9375rem',
             }}>
             Beurt afsluiten →
           </button>
           <button
+            type="button"
             onClick={openCorrection}
+            className="min-h-[48px]"
             style={{
               backgroundColor: '#235e3f',
               color: '#f5e6c8',
@@ -518,7 +532,7 @@ export default function MatchPage() {
               fontWeight: 600,
               padding: '0.75rem',
               borderRadius: '0.5rem',
-              fontSize: '1rem',
+              fontSize: '0.9375rem',
             }}>
             Correctie
           </button>
@@ -527,8 +541,8 @@ export default function MatchPage() {
 
       {/* Correction modal */}
       {showCorrection && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.75rem', padding: '1.5rem', width: '100%', maxWidth: '380px', maxHeight: '80vh', overflowY: 'auto' }}>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full sm:max-w-[380px] max-h-[85dvh] overflow-y-auto rounded-t-xl sm:rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', padding: '1.25rem', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
             <h2 className="text-lg font-bold mb-3" style={{ color: '#c9a84c' }}>
               Correctie — {activeState.name}
             </h2>

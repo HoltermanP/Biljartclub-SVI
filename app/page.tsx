@@ -42,8 +42,8 @@ export default async function Dashboard() {
 
   return (
     <div>
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold mb-2" style={{ color: '#c9a84c' }}>
+      <div className="mb-6 sm:mb-8 text-center px-1">
+        <h1 className="text-2xl sm:text-4xl font-bold mb-2" style={{ color: '#c9a84c' }}>
           Biljartclub SVI
         </h1>
         <p style={{ color: 'rgba(245,230,200,0.7)' }}>Carambolebiljarten &mdash; Competitiemanagement</p>
@@ -71,9 +71,34 @@ export default async function Dashboard() {
       </div>
 
       {stats.competitions.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4" style={{ color: '#c9a84c' }}>Recente competities</h2>
-          <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+        <div className="mt-6 sm:mt-8">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4" style={{ color: '#c9a84c' }}>Recente competities</h2>
+
+          <div className="space-y-3 md:hidden">
+            {stats.competitions.slice(0, 5).map((c) => (
+              <div
+                key={c.id}
+                style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
+                <div className="font-semibold text-base mb-2 break-words" style={{ color: '#f5e6c8' }}>{c.name}</div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Type</dt>
+                  <dd>{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</dd>
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Deelnemers</dt>
+                  <dd>{c.member_count}</dd>
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Partijen</dt>
+                  <dd>{c.played_count}/{c.total_matches}</dd>
+                </dl>
+                <Link
+                  href={`/competitions/${c.id}`}
+                  className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-md font-semibold hover:opacity-90"
+                  style={{ backgroundColor: '#c9a84c', color: '#0d2b1e' }}>
+                  Bekijken
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
             <table className="w-full">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
@@ -87,10 +112,10 @@ export default async function Dashboard() {
               <tbody>
                 {stats.competitions.slice(0, 5).map((c) => (
                   <tr key={c.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-                    <td className="px-4 py-3">{c.name}</td>
-                    <td className="px-4 py-3">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
-                    <td className="px-4 py-3">{c.member_count}</td>
-                    <td className="px-4 py-3">{c.played_count}/{c.total_matches}</td>
+                    <td className="px-4 py-3 text-sm">{c.name}</td>
+                    <td className="px-4 py-3 text-sm">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
+                    <td className="px-4 py-3 text-sm">{c.member_count}</td>
+                    <td className="px-4 py-3 text-sm">{c.played_count}/{c.total_matches}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/competitions/${c.id}`} className="text-sm font-semibold hover:underline" style={{ color: '#c9a84c' }}>
                         Bekijken →

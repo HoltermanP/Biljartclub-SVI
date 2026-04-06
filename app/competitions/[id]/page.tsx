@@ -77,27 +77,31 @@ export default function CompetitionDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/competitions" className="hover:underline" style={{ color: 'rgba(245,230,200,0.6)' }}>← Competities</Link>
-        <span style={{ color: 'rgba(245,230,200,0.3)' }}>/</span>
-        <h1 className="text-2xl font-bold" style={{ color: '#c9a84c' }}>{competition.name}</h1>
-        <span className="text-sm px-2 py-1 rounded" style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: '#c9a84c' }}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 mb-4 sm:mb-6 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+          <Link href="/competitions" className="min-h-[44px] inline-flex items-center text-sm sm:text-base hover:underline shrink-0" style={{ color: 'rgba(245,230,200,0.6)' }}>← Competities</Link>
+          <span className="hidden sm:inline" style={{ color: 'rgba(245,230,200,0.3)' }}>/</span>
+          <h1 className="text-xl sm:text-2xl font-bold break-words min-w-0" style={{ color: '#c9a84c' }}>{competition.name}</h1>
+        </div>
+        <span className="text-xs sm:text-sm px-2 py-1 rounded w-fit shrink-0" style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: '#c9a84c' }}>
           {competition.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}
         </span>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+      {/* Tabs — horizontaal scrollbaar op smalle schermen */}
+      <div className="overflow-touch-x -mx-1 px-1 mb-4 sm:mb-6" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+        <div className="flex gap-0 min-w-min pb-px">
         {([
           { key: 'standings', label: `Ranglijst` },
           { key: 'played', label: `Gespeeld (${playedMatches.length})` },
           { key: 'planned', label: `Te spelen (${plannedMatches.length})` },
         ] as const).map(({ key, label }) => (
           <button
+            type="button"
             key={key}
             onClick={() => setTab(key)}
+            className="min-h-[48px] shrink-0 px-3 sm:px-5 py-3 text-sm sm:text-base whitespace-nowrap"
             style={{
-              padding: '0.75rem 1.25rem',
               fontWeight: tab === key ? 700 : 400,
               color: tab === key ? '#c9a84c' : 'rgba(245,230,200,0.6)',
               borderBottom: tab === key ? '2px solid #c9a84c' : '2px solid transparent',
@@ -106,6 +110,7 @@ export default function CompetitionDetailPage() {
             {label}
           </button>
         ))}
+        </div>
       </div>
 
       {tab === 'standings' && <StandingsTab standings={standings} />}
@@ -117,37 +122,94 @@ export default function CompetitionDetailPage() {
 
 function StandingsTab({ standings }: { standings: Standing[] }) {
   return (
-    <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', overflowX: 'auto' }}>
-      <table className="w-full">
-        <thead>
-          <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-            {['#', 'Naam', 'Partijen', 'Punten', 'Gem. punten', 'Gem. caramboles', 'Gewonnen', 'Remise', 'Verloren', 'Hoogste serie'].map((h) => (
-              <th key={h} className="text-left px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: '#c9a84c' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {standings.map((s, i) => {
-            const avgCar = s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
-            const avgPts = s.played > 0 ? (s.points / s.played).toFixed(2) : '–';
-            return (
-              <tr key={s.member_id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-                <td className="px-3 py-3 text-sm font-bold" style={{ color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.6)' }}>{i + 1}</td>
-                <td className="px-3 py-3 font-semibold">{s.name}</td>
-                <td className="px-3 py-3 text-sm">{s.played}</td>
-                <td className="px-3 py-3 font-bold" style={{ color: '#c9a84c' }}>{s.points.toFixed(2)}</td>
-                <td className="px-3 py-3 text-sm">{avgPts}</td>
-                <td className="px-3 py-3 text-sm">{avgCar}</td>
-                <td className="px-3 py-3 text-sm" style={{ color: '#4ade80' }}>{s.wins}</td>
-                <td className="px-3 py-3 text-sm" style={{ color: '#facc15' }}>{s.draws}</td>
-                <td className="px-3 py-3 text-sm" style={{ color: '#f87171' }}>{s.losses}</td>
-                <td className="px-3 py-3 text-sm">{s.highest_serie}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="space-y-3 md:hidden">
+        {standings.map((s, i) => {
+          const avgCar = s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
+          const avgPts = s.played > 0 ? (s.points / s.played).toFixed(2) : '–';
+          return (
+            <div
+              key={s.member_id}
+              style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="min-w-0 flex-1">
+                  <span className="mr-2 inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded text-sm font-bold" style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.75)' }}>
+                    {i + 1}
+                  </span>
+                  <span className="font-semibold break-words" style={{ color: '#f5e6c8' }}>{s.name}</span>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-xs" style={{ color: 'rgba(245,230,200,0.5)' }}>Punten</div>
+                  <div className="text-lg font-bold tabular-nums" style={{ color: '#c9a84c' }}>{s.points.toFixed(2)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-3">
+                <div>
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Partijen</div>
+                  <div className="font-medium tabular-nums">{s.played}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Gem. punten</div>
+                  <div className="tabular-nums">{avgPts}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Gem. car.</div>
+                  <div className="tabular-nums">{avgCar}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#4ade80' }}>Winst</div>
+                  <div className="tabular-nums font-medium" style={{ color: '#4ade80' }}>{s.wins}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#facc15' }}>Remise</div>
+                  <div className="tabular-nums font-medium" style={{ color: '#facc15' }}>{s.draws}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#f87171' }}>Verlies</div>
+                  <div className="tabular-nums font-medium" style={{ color: '#f87171' }}>{s.losses}</div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Hoogste serie</div>
+                  <div className="tabular-nums">{s.highest_serie}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+        <table className="w-full">
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+              {['#', 'Naam', 'Partijen', 'Punten', 'Gem. punten', 'Gem. caramboles', 'Gewonnen', 'Remise', 'Verloren', 'Hoogste serie'].map((h) => (
+                <th key={h} className="text-left px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: '#c9a84c' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {standings.map((s, i) => {
+              const avgCar = s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
+              const avgPts = s.played > 0 ? (s.points / s.played).toFixed(2) : '–';
+              return (
+                <tr key={s.member_id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                  <td className="px-3 py-3 text-sm font-bold" style={{ color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.6)' }}>{i + 1}</td>
+                  <td className="px-3 py-3 font-semibold text-sm">{s.name}</td>
+                  <td className="px-3 py-3 text-sm">{s.played}</td>
+                  <td className="px-3 py-3 text-sm font-bold whitespace-nowrap" style={{ color: '#c9a84c' }}>{s.points.toFixed(2)}</td>
+                  <td className="px-3 py-3 text-sm">{avgPts}</td>
+                  <td className="px-3 py-3 text-sm">{avgCar}</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: '#4ade80' }}>{s.wins}</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: '#facc15' }}>{s.draws}</td>
+                  <td className="px-3 py-3 text-sm" style={{ color: '#f87171' }}>{s.losses}</td>
+                  <td className="px-3 py-3 text-sm">{s.highest_serie}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -193,7 +255,7 @@ function PlayedMatchCard({ match: m }: { match: Match }) {
       </div>
 
       {/* Scores */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {[
           {
             name: m.player1_name, ball: '⚪', caramboles: m.p1_caramboles, beurten: m.p1_beurten,
@@ -242,43 +304,77 @@ function PlannedTab({ matches, onStart }: { matches: Match[]; onStart: (id: numb
     return <p style={{ color: 'rgba(245,230,200,0.6)' }}>Alle partijen zijn gespeeld!</p>;
   }
   return (
-    <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
-      <table className="w-full">
-        <thead>
-          <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-            <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Speler 1</th>
-            <th className="text-center px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>vs</th>
-            <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Speler 2</th>
-            <th className="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {matches.map((m) => (
-            <tr key={m.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-              <td className="px-4 py-3">
-                ⚪ {m.player1_name}
-                <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                  (moy. {parseFloat(String(m.player1_moyenne)).toFixed(2)})
-                </span>
-              </td>
-              <td className="px-4 py-3 text-center" style={{ color: 'rgba(245,230,200,0.4)' }}>vs</td>
-              <td className="px-4 py-3">
-                🟡 {m.player2_name}
-                <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                  (moy. {parseFloat(String(m.player2_moyenne)).toFixed(2)})
-                </span>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  onClick={() => onStart(m.id)}
-                  style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.4rem 1rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
-                  Start partij
-                </button>
-              </td>
+    <>
+      {/* Kaarten op smalle schermen */}
+      <div className="space-y-3 md:hidden">
+        {matches.map((m) => (
+          <div
+            key={m.id}
+            style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
+            <div className="text-sm font-semibold mb-2 break-words">
+              <span>⚪ {m.player1_name}</span>
+              <span className="block text-xs font-normal mt-0.5" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                moy. {parseFloat(String(m.player1_moyenne)).toFixed(2)}
+              </span>
+            </div>
+            <div className="text-center text-xs py-1" style={{ color: 'rgba(245,230,200,0.4)' }}>tegen</div>
+            <div className="text-sm font-semibold mb-3 break-words">
+              <span>🟡 {m.player2_name}</span>
+              <span className="block text-xs font-normal mt-0.5" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                moy. {parseFloat(String(m.player2_moyenne)).toFixed(2)}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStart(m.id)}
+              className="w-full min-h-[48px]"
+              style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1rem', borderRadius: '0.375rem', fontSize: '0.9375rem' }}>
+              Start partij
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+        <table className="w-full">
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+              <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Speler 1</th>
+              <th className="text-center px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>vs</th>
+              <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Speler 2</th>
+              <th className="px-4 py-3"></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {matches.map((m) => (
+              <tr key={m.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                <td className="px-4 py-3">
+                  ⚪ {m.player1_name}
+                  <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                    (moy. {parseFloat(String(m.player1_moyenne)).toFixed(2)})
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center" style={{ color: 'rgba(245,230,200,0.4)' }}>vs</td>
+                <td className="px-4 py-3">
+                  🟡 {m.player2_name}
+                  <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                    (moy. {parseFloat(String(m.player2_moyenne)).toFixed(2)})
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onStart(m.id)}
+                    className="min-h-[44px] min-w-[44px] sm:min-w-0 inline-flex items-center justify-center"
+                    style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.4rem 1rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
+                    Start partij
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

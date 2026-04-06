@@ -113,9 +113,10 @@ export default function CompetitionsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold" style={{ color: '#c9a84c' }}>Competities</h1>
-        <button onClick={openForm}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#c9a84c' }}>Competities</h1>
+        <button type="button" onClick={openForm}
+          className="min-h-[44px] w-full sm:w-auto shrink-0"
           style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem' }}>
           + Nieuwe competitie
         </button>
@@ -128,57 +129,106 @@ export default function CompetitionsPage() {
           <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen competities aangemaakt.</p>
         </div>
       ) : (
-        <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Type</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Deelnemers</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Voortgang</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {competitions.map((c) => {
-                const pct = c.total_matches > 0 ? Math.round((c.played_count / c.total_matches) * 100) : 0;
-                return (
-                  <tr key={c.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-                    <td className="px-4 py-3 font-semibold">{c.name}</td>
-                    <td className="px-4 py-3">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
-                    <td className="px-4 py-3">{c.member_count} spelers</td>
-                    <td className="px-4 py-3">
+        <>
+          <div className="space-y-3 md:hidden">
+            {competitions.map((c) => {
+              const pct = c.total_matches > 0 ? Math.round((c.played_count / c.total_matches) * 100) : 0;
+              return (
+                <div
+                  key={c.id}
+                  style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
+                  <div className="font-semibold text-base mb-2 break-words" style={{ color: '#f5e6c8' }}>{c.name}</div>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mb-3">
+                    <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Type</dt>
+                    <dd>{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</dd>
+                    <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Deelnemers</dt>
+                    <dd>{c.member_count} spelers</dd>
+                    <dt className="col-span-2 mt-1" style={{ color: 'rgba(245,230,200,0.55)' }}>Voortgang</dt>
+                    <dd className="col-span-2">
                       <div className="flex items-center gap-2">
-                        <div style={{ flex: 1, height: '6px', backgroundColor: 'rgba(201,168,76,0.2)', borderRadius: '3px' }}>
+                        <div className="min-w-0 flex-1" style={{ height: '6px', backgroundColor: 'rgba(201,168,76,0.2)', borderRadius: '3px' }}>
                           <div style={{ width: `${pct}%`, height: '100%', backgroundColor: '#c9a84c', borderRadius: '3px' }} />
                         </div>
-                        <span className="text-sm" style={{ color: 'rgba(245,230,200,0.7)', minWidth: '70px' }}>
+                        <span className="shrink-0 text-sm tabular-nums" style={{ color: 'rgba(245,230,200,0.75)' }}>
                           {c.played_count}/{c.total_matches}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/competitions/${c.id}`} className="text-sm font-semibold hover:underline mr-4" style={{ color: '#c9a84c' }}>
-                        Bekijken →
-                      </Link>
-                      <button onClick={() => handleDelete(c.id, c.name)}
-                        className="text-xs hover:underline"
-                        style={{ color: 'rgba(239,68,68,0.5)', marginLeft: '0.25rem' }}>
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </dd>
+                  </dl>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/competitions/${c.id}`}
+                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-md font-semibold hover:opacity-90"
+                      style={{ backgroundColor: '#c9a84c', color: '#0d2b1e' }}>
+                      Bekijken
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(c.id, c.name)}
+                      className="min-h-[44px] min-w-[48px] shrink-0 rounded-md text-lg font-bold hover:opacity-90"
+                      aria-label={`Competitie ${c.name} verwijderen`}
+                      style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.85)', border: '1px solid rgba(239,68,68,0.35)' }}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden md:block rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+            <table className="w-full">
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Type</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Deelnemers</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Voortgang</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {competitions.map((c) => {
+                  const pct = c.total_matches > 0 ? Math.round((c.played_count / c.total_matches) * 100) : 0;
+                  return (
+                    <tr key={c.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                      <td className="px-4 py-3 font-semibold text-sm">{c.name}</td>
+                      <td className="px-4 py-3 text-sm">{c.type === 'single' ? 'Enkelvoudig' : 'Dubbel'}</td>
+                      <td className="px-4 py-3 text-sm">{c.member_count} spelers</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="min-w-[48px] flex-1" style={{ height: '6px', backgroundColor: 'rgba(201,168,76,0.2)', borderRadius: '3px' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', backgroundColor: '#c9a84c', borderRadius: '3px' }} />
+                          </div>
+                          <span className="text-sm whitespace-nowrap tabular-nums" style={{ color: 'rgba(245,230,200,0.7)', minWidth: '64px' }}>
+                            {c.played_count}/{c.total_matches}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <Link href={`/competitions/${c.id}`} className="text-sm font-semibold hover:underline mr-4" style={{ color: '#c9a84c' }}>
+                          Bekijken →
+                        </Link>
+                        <button type="button" onClick={() => handleDelete(c.id, c.name)}
+                          className="text-xs hover:underline"
+                          aria-label={`Competitie ${c.name} verwijderen`}
+                          style={{ color: 'rgba(239,68,68,0.5)', marginLeft: '0.25rem' }}>
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.75rem', padding: '2rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full sm:max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-t-xl sm:rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', padding: '1.25rem', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: '#c9a84c' }}>Nieuwe competitie</h2>
 
             {error && <p className="mb-3 text-sm" style={{ color: '#ef4444' }}>{error}</p>}
@@ -262,14 +312,16 @@ export default function CompetitionsPage() {
               )}
             </div>
 
-            <div className="flex gap-3">
-              <button onClick={handleCreate} disabled={saving}
-                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
-                {saving ? 'Aanmaken...' : 'Aanmaken'}
-              </button>
-              <button onClick={() => setShowForm(false)}
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <button type="button" onClick={() => setShowForm(false)}
+                className="min-h-[48px]"
                 style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
                 Annuleren
+              </button>
+              <button type="button" onClick={handleCreate} disabled={saving}
+                className="min-h-[48px]"
+                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
+                {saving ? 'Aanmaken...' : 'Aanmaken'}
               </button>
             </div>
           </div>

@@ -81,9 +81,10 @@ export default function MembersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold" style={{ color: '#c9a84c' }}>Leden</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#c9a84c' }}>Leden</h1>
         <button onClick={openAdd}
+          className="min-h-[44px] w-full sm:w-auto shrink-0"
           style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem' }}>
           + Lid toevoegen
         </button>
@@ -96,43 +97,69 @@ export default function MembersPage() {
           <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen leden aangemaakt.</p>
         </div>
       ) : (
-        <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Moyenne</th>
-                <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Lid sinds</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => (
-                <tr key={m.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-                  <td className="px-4 py-3 font-semibold">{m.name}</td>
-                  <td className="px-4 py-3" style={{ color: '#c9a84c' }}>{parseFloat(String(m.moyenne)).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm" style={{ color: 'rgba(245,230,200,0.6)' }}>
-                    {new Date(m.created_at).toLocaleDateString('nl-NL')}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(m)} className="text-sm mr-3 hover:underline" style={{ color: '#c9a84c' }}>
-                      Bewerken
-                    </button>
-                    <button onClick={() => handleDelete(m)} className="text-sm hover:underline" style={{ color: '#ef4444' }}>
-                      Verwijderen
-                    </button>
-                  </td>
+        <>
+          <div className="space-y-3 md:hidden">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
+                <div className="font-semibold text-base mb-2 break-words" style={{ color: '#f5e6c8' }}>{m.name}</div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mb-3">
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Moyenne</dt>
+                  <dd style={{ color: '#c9a84c', fontWeight: 700 }}>{parseFloat(String(m.moyenne)).toFixed(2)}</dd>
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Lid sinds</dt>
+                  <dd style={{ color: 'rgba(245,230,200,0.65)' }}>{new Date(m.created_at).toLocaleDateString('nl-NL')}</dd>
+                </dl>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button type="button" onClick={() => openEdit(m)} className="min-h-[44px] flex-1 rounded-md font-semibold hover:opacity-90" style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.35)' }}>
+                    Bewerken
+                  </button>
+                  <button type="button" onClick={() => handleDelete(m)} className="min-h-[44px] flex-1 rounded-md font-semibold hover:opacity-90" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)' }}>
+                    Verwijderen
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+            <table className="w-full">
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Moyenne</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Lid sinds</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {members.map((m) => (
+                  <tr key={m.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                    <td className="px-4 py-3 font-semibold text-sm">{m.name}</td>
+                    <td className="px-4 py-3 text-sm" style={{ color: '#c9a84c' }}>{parseFloat(String(m.moyenne)).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm" style={{ color: 'rgba(245,230,200,0.6)' }}>
+                      {new Date(m.created_at).toLocaleDateString('nl-NL')}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button type="button" onClick={() => openEdit(m)} className="text-sm mr-3 hover:underline" style={{ color: '#c9a84c' }}>
+                        Bewerken
+                      </button>
+                      <button type="button" onClick={() => handleDelete(m)} className="text-sm hover:underline" style={{ color: '#ef4444' }}>
+                        Verwijderen
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.75rem', padding: '2rem', width: '100%', maxWidth: '400px' }}>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full sm:max-w-[400px] max-h-[90dvh] overflow-y-auto rounded-t-xl sm:rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', padding: '1.25rem', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: '#c9a84c' }}>
               {editMember ? 'Lid bewerken' : 'Lid toevoegen'}
             </h2>
@@ -164,14 +191,16 @@ export default function MembersPage() {
               />
             </div>
 
-            <div className="flex gap-3">
-              <button onClick={handleSave} disabled={saving}
-                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
-                {saving ? 'Opslaan...' : 'Opslaan'}
-              </button>
-              <button onClick={() => setShowForm(false)}
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <button type="button" onClick={() => setShowForm(false)}
+                className="min-h-[48px]"
                 style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
                 Annuleren
+              </button>
+              <button type="button" onClick={handleSave} disabled={saving}
+                className="min-h-[48px]"
+                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.5rem 1.25rem', borderRadius: '0.375rem', flex: 1 }}>
+                {saving ? 'Opslaan...' : 'Opslaan'}
               </button>
             </div>
           </div>
