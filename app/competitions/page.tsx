@@ -264,7 +264,7 @@ export default function CompetitionsPage() {
             </div>
 
             <div className="mb-6">
-              <label>Deelnemers &amp; moyennes voor deze competitie ({selectedIds.length} geselecteerd)</label>
+              <label>Deelnemers &amp; te maken caramboles voor deze competitie ({selectedIds.length} geselecteerd)</label>
               {members.length === 0 ? (
                 <p className="text-sm mt-1" style={{ color: 'rgba(245,230,200,0.6)' }}>
                   Geen leden beschikbaar. Voeg eerst leden toe.
@@ -286,7 +286,7 @@ export default function CompetitionsPage() {
                         <span className="flex-1">{m.name}</span>
                         {selected ? (
                           <div className="flex items-center gap-1">
-                            <span className="text-xs" style={{ color: 'rgba(245,230,200,0.5)' }}>moy.</span>
+                            <span className="text-xs" style={{ color: 'rgba(245,230,200,0.5)' }}>car.</span>
                             <input
                               type="number"
                               step="0.01"
@@ -302,7 +302,7 @@ export default function CompetitionsPage() {
                           </div>
                         ) : (
                           <span className="text-sm" style={{ color: 'rgba(245,230,200,0.4)' }}>
-                            moy. {parseFloat(String(m.moyenne)).toFixed(2)}
+                            {parseFloat(String(m.moyenne)).toFixed(2)} car.
                           </span>
                         )}
                       </div>

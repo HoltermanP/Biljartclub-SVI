@@ -44,6 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const standings: Record<number, {
       member_id: number;
       name: string;
+      moyenne: number;
       played: number;
       points: number;
       caramboles: number;
@@ -58,6 +59,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       standings[member.id] = {
         member_id: member.id,
         name: member.name,
+        moyenne: parseFloat(String(member.comp_moyenne ?? member.moyenne)) || 0,
         played: 0,
         points: 0,
         caramboles: 0,
@@ -110,7 +112,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return bAvg - aAvg;
     });
 
-    return NextResponse.json({ competition, members, matches, standings: standingsList });
+    const membersOut = members.map((m: Record<string, unknown>) => ({
+      id: m.id,
+      name: m.name,
+      moyenne: parseFloat(String(m.comp_moyenne ?? m.moyenne)) || 0,
+    }));
+    return NextResponse.json({ competition, members: membersOut, matches, standings: standingsList });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

@@ -67,10 +67,12 @@ export default function MatchPage() {
   const [p1TurnCount, setP1TurnCount] = useState(0);
   const [p2TurnCount, setP2TurnCount] = useState(0);
 
+  const [submittingTurn, setSubmittingTurn] = useState(false);
+
   // Correction modal
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionTurns, setCorrectionTurns] = useState<Turn[]>([]);
-  const [correctionValues, setCorrectionValues] = useState<Record<number, number>>({});
+  const [correctionValues, setCorrectionValues] = useState<Record<number, string>>({});
 
   // Finish result
   const [finishResult, setFinishResult] = useState<{
@@ -159,7 +161,8 @@ export default function MatchPage() {
   }
 
   async function finishTurn() {
-    if (!activeState || !p1State || !p2State || !match) return;
+    if (!activeState || !p1State || !p2State || !match || submittingTurn) return;
+    setSubmittingTurn(true);
     const turnNumber = activeTurnCount + 1;
     const caramboles = activeState.currentBeurtCaramboles;
 
@@ -168,7 +171,7 @@ export default function MatchPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: activeState.id, turnNumber, caramboles }),
     });
-    if (!res.ok) return;
+    if (!res.ok) { setSubmittingTurn(false); return; }
     const savedTurn = await res.json();
     setTurns((prev) => [...prev, savedTurn]);
 
@@ -196,6 +199,7 @@ export default function MatchPage() {
       setActivePlayerId(otherState.id);
     }
     // Anders blijft de actieve speler aan de beurt (de andere is al klaar)
+    setSubmittingTurn(false);
   }
 
   async function finishMatch() {
@@ -207,26 +211,50 @@ export default function MatchPage() {
   }
 
   function openCorrection() {
-    if (!activeState) return;
-    const activeTurns = turns.filter((t) => t.player_id === activeState.id);
-    setCorrectionTurns(activeTurns);
-    const vals: Record<number, number> = {};
-    activeTurns.forEach((t) => { vals[t.id] = t.caramboles; });
+    // Alle beurten, dedupliceer per speler per beurtnummer (laatste wint)
+    const deduped = new Map<string, Turn>();
+    for (const t of turns) {
+      deduped.set(`${t.player_id}-${t.turn_number}`, t);
+    }
+    const allTurns = Array.from(deduped.values());
+    setCorrectionTurns(allTurns);
+    const vals: Record<number, string> = {};
+    allTurns.forEach((t) => { vals[t.id] = String(t.caramboles); });
     setCorrectionValues(vals);
     setShowCorrection(true);
   }
 
+  async function saveAllCorrections() {
+    const changed = correctionTurns.filter((t) => parseInt(correctionValues[t.id]) !== t.caramboles);
+    for (const t of changed) {
+      await saveCorrection(t.id);
+    }
+    setShowCorrection(false);
+  }
+
   async function saveCorrection(turnId: number) {
-    const newVal = correctionValues[turnId];
+    const newVal = parseInt(correctionValues[turnId]) || 0;
     const res = await fetch(`/api/matches/${id}/turn/${turnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ caramboles: newVal }),
     });
     if (res.ok) {
-      setTurns((prev) => prev.map((t) => t.id === turnId ? { ...t, caramboles: newVal } : t));
+      const updatedTurns = turns.map((t) => t.id === turnId ? { ...t, caramboles: newVal } : t);
+      setTurns(updatedTurns);
+
+      // Herbereken spelerstatus vanuit de bijgewerkte beurten
+      const playerId = turns.find((t) => t.id === turnId)?.player_id;
+      if (playerId) {
+        const playerTurns = updatedTurns.filter((t) => t.player_id === playerId);
+        const totalCaramboles = playerTurns.reduce((sum, t) => sum + (t.caramboles || 0), 0);
+        const highestSerie = playerTurns.reduce((max, t) => Math.max(max, t.caramboles || 0), 0);
+        const updateFn = (prev: PlayerState | null) =>
+          prev ? { ...prev, totalCaramboles, highestSerie } : prev;
+        if (p1State?.id === playerId) setP1State(updateFn);
+        else if (p2State?.id === playerId) setP2State(updateFn);
+      }
     }
-    setShowCorrection(false);
   }
 
   // Rondenummer = voltooide rondes + 1 (ronde = beide spelers hebben gespeeld)
@@ -243,9 +271,32 @@ export default function MatchPage() {
       <div className="max-w-lg mx-auto px-1">
         <h1 className="text-xl sm:text-2xl font-bold mb-2 text-center" style={{ color: '#c9a84c' }}>Partij starten</h1>
         <p className="text-center mb-2" style={{ color: 'rgba(245,230,200,0.7)' }}>Wie begint?</p>
-        <p className="text-center mb-6 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
+        <p className="text-center mb-4 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
           De beginspeler speelt met ⚪ (wit)
         </p>
+
+        {/* Toss illustratie */}
+        <div className="flex justify-center mb-6">
+          <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Bewegingslijnen links */}
+            <path d="M12 38 Q6 44 10 52" stroke="#0d5c3a" strokeWidth="3.5" strokeLinecap="round"/>
+            <path d="M8 30 Q2 40 6 50" stroke="#0d5c3a" strokeWidth="2.5" strokeLinecap="round"/>
+            {/* Bewegingslijnen rechts */}
+            <path d="M84 38 Q90 44 86 52" stroke="#0d5c3a" strokeWidth="3.5" strokeLinecap="round"/>
+            <path d="M88 30 Q94 40 90 50" stroke="#0d5c3a" strokeWidth="2.5" strokeLinecap="round"/>
+            {/* Munt/schijf ellips – schaduw */}
+            <ellipse cx="48" cy="50" rx="30" ry="10" fill="#093d25" opacity="0.5"/>
+            {/* Munt/schijf ellips – body */}
+            <ellipse cx="48" cy="46" rx="30" ry="20" fill="#0d5c3a"/>
+            {/* Rand */}
+            <ellipse cx="48" cy="46" rx="30" ry="20" fill="none" stroke="#1a7a50" strokeWidth="2"/>
+            {/* Witte streep */}
+            <ellipse cx="48" cy="46" rx="28" ry="18" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3"/>
+            {/* TOSS tekst */}
+            <text x="48" y="51" textAnchor="middle" fontFamily="system-ui, sans-serif" fontWeight="bold" fontSize="13" fill="white" letterSpacing="2">TOSS</text>
+          </svg>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {[
             { id: match.player1_id, name: match.player1_name },
@@ -264,7 +315,6 @@ export default function MatchPage() {
                 cursor: 'pointer',
               }}
               className="min-h-[120px] sm:min-h-[140px] active:scale-[0.99] hover:border-yellow-500 transition-colors">
-              <div className="text-4xl sm:text-5xl mb-2 sm:mb-3">🎱</div>
               <div className="text-lg sm:text-xl font-bold break-words px-1" style={{ color: '#f5e6c8' }}>{p.name}</div>
               <div className="text-xs sm:text-sm mt-2" style={{ color: 'rgba(245,230,200,0.5)' }}>Tik om te beginnen</div>
             </button>
@@ -335,12 +385,12 @@ export default function MatchPage() {
               {stats && (
                 <div className="space-y-1 text-sm">
                   <Row label="Caramboles" value={stats.caramboles} gold />
-                  <Row label="Te maken (moy.)" value={player.moyenne.toFixed(2)} />
+                  <Row label="Te maken car." value={player.moyenne.toFixed(2)} />
                   <Row label="Beurten" value={stats.beurten} />
                   <Row label="Gem." value={stats.beurten > 0 ? (stats.caramboles / stats.beurten).toFixed(3) : '–'} />
                   <Row label="Hoogste serie" value={stats.highestSerie} />
                   <Row label="Punten" value={parseFloat(String(stats.points)).toFixed(2)} gold />
-                  {stats.aboveMoyenne && <div style={{ color: '#4ade80', marginTop: '0.25rem' }}>↑ Boven moyenne gespeeld</div>}
+                  {stats.aboveMoyenne && <div style={{ color: '#4ade80', marginTop: '0.25rem' }}>↑ Boven te maken car. gespeeld</div>}
                   {fr && (
                     <div className="mt-2 pt-2 text-xs" style={{ borderTop: '1px solid rgba(201,168,76,0.2)', color: 'rgba(245,230,200,0.6)' }}>
                       {fr.basePoints.toFixed(2)} basis
@@ -376,204 +426,234 @@ export default function MatchPage() {
   // Rondenummer al berekend boven, cappen op MAX_TURNS
   const currentTurnNumber = Math.min(roundNumber, MAX_TURNS);
 
+  const p1Turns = turns.filter((t) => t.player_id === p1State.id);
+  const p2Turns = turns.filter((t) => t.player_id === p2State.id);
+
   return (
-    <div>
-      {/* Last turn warning */}
-      {showLastTurnWarning && (
-        <div className="text-center py-2 px-4 mb-4 rounded font-bold text-lg" style={{ backgroundColor: '#b45309', color: '#fef3c7' }}>
-          ⚠️ LAATSTE BEURT!
-        </div>
-      )}
+    <div className="flex gap-2 sm:gap-3 items-start">
 
-      {/* Scoreboard grid */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
-        {[
-          { state: p1State, avg: p1Avg, isActive: activePlayerId === p1State.id, turnCount: p1TurnCount },
-          { state: p2State, avg: p2Avg, isActive: activePlayerId === p2State.id, turnCount: p2TurnCount },
-        ].map(({ state, avg, isActive, turnCount }) => (
-          <div
-            key={state.id}
-            style={{
-              backgroundColor: '#1a4731',
-              border: `2px solid ${isActive ? '#c9a84c' : 'rgba(201,168,76,0.2)'}`,
-              borderRadius: '0.75rem',
-              padding: '0.65rem 0.5rem sm:p-4',
-              opacity: isActive ? 1 : 0.7,
-            }}>
-            {/* Active indicator ball */}
-            {isActive && (
-              <div className="text-center text-2xl sm:text-4xl mb-1 sm:mb-2">{state.ball}</div>
+      {/* ── Beurtenpaneel speler 1 (links) ── */}
+      <div className="shrink-0 sticky top-0" style={{ width: '4.5rem' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(201,168,76,0.25)', backgroundColor: '#1a4731' }}>
+          <div className="px-1 py-1.5 text-center text-xs font-bold truncate" style={{ backgroundColor: 'rgba(201,168,76,0.15)', color: '#c9a84c', borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+            {p1State.name}
+          </div>
+          <div className="grid grid-cols-2 px-1 py-0.5 text-xs font-semibold text-center" style={{ color: 'rgba(245,230,200,0.5)', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+            <span>#</span><span>Car</span>
+          </div>
+          <div className="overflow-y-auto" style={{ maxHeight: '70dvh' }}>
+            {p1Turns.length === 0 && (
+              <div className="text-center py-3 text-xs" style={{ color: 'rgba(245,230,200,0.25)' }}>–</div>
             )}
+            {p1Turns.map((t) => (
+              <div key={t.id} className="grid grid-cols-2 text-center text-xs tabular-nums py-0.5"
+                style={{ borderTop: '1px solid rgba(201,168,76,0.08)' }}>
+                <span style={{ color: 'rgba(245,230,200,0.45)' }}>{t.turn_number}</span>
+                <span style={{ color: t.caramboles > 0 ? '#c9a84c' : 'rgba(245,230,200,0.3)', fontWeight: t.caramboles > 0 ? 700 : 400 }}>{t.caramboles}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
+      {/* ── Midden: scoreboard + beurtnummer + controls ── */}
+      <div className="flex-1 min-w-0">
+
+        {/* Last turn warning */}
+        {showLastTurnWarning && (
+          <div className="text-center py-2 px-4 mb-3 rounded font-bold text-lg" style={{ backgroundColor: '#b45309', color: '#fef3c7' }}>
+            ⚠️ LAATSTE BEURT!
+          </div>
+        )}
+
+        {/* Scoreboard grid */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+          {[
+            { state: p1State, avg: p1Avg, isActive: activePlayerId === p1State.id, turnCount: p1TurnCount },
+            { state: p2State, avg: p2Avg, isActive: activePlayerId === p2State.id, turnCount: p2TurnCount },
+          ].map(({ state, avg, isActive, turnCount }) => (
             <div
-              className={`font-bold text-center mb-1 sm:mb-2 break-words line-clamp-3 ${isActive ? 'text-xs sm:text-lg' : 'text-[0.7rem] sm:text-base'}`}
-              style={{ color: isActive ? '#c9a84c' : '#f5e6c8' }}>
-              {state.name}
-            </div>
-
-            {/* Big caramboles count */}
-            <div className="text-center mb-1 sm:mb-2">
-              <span className="font-bold tabular-nums" style={{ fontSize: isActive ? 'clamp(1.75rem, 8vw, 3rem)' : 'clamp(1.25rem, 6vw, 2rem)', color: '#c9a84c', lineHeight: 1 }}>
-                {state.totalCaramboles}
-              </span>
-              {isActive && state.currentBeurtCaramboles > 0 && (
-                <span className="ml-1 sm:ml-2 text-base sm:text-xl font-bold" style={{ color: '#4ade80' }}>
-                  +{state.currentBeurtCaramboles}
+              key={state.id}
+              style={{
+                backgroundColor: '#1a4731',
+                border: `2px solid ${isActive ? '#c9a84c' : 'rgba(201,168,76,0.2)'}`,
+                borderRadius: '0.75rem',
+                padding: '0.65rem 0.5rem',
+                opacity: isActive ? 1 : 0.7,
+              }}>
+              <div className="text-center text-2xl sm:text-4xl mb-1 sm:mb-2" style={{ visibility: isActive ? 'visible' : 'hidden' }}>{state.ball}</div>
+              <div className={`font-bold text-center mb-1 sm:mb-2 break-words line-clamp-3 ${isActive ? 'text-xs sm:text-lg' : 'text-[0.7rem] sm:text-base'}`}
+                style={{ color: isActive ? '#c9a84c' : '#f5e6c8' }}>
+                {state.name}
+              </div>
+              <div className="text-center mb-1 sm:mb-2">
+                <span className="font-bold tabular-nums" style={{ fontSize: isActive ? 'clamp(1.75rem, 8vw, 3rem)' : 'clamp(1.25rem, 6vw, 2rem)', color: '#c9a84c', lineHeight: 1 }}>
+                  {state.totalCaramboles}
                 </span>
-              )}
-            </div>
-
-            <div className="text-[0.65rem] sm:text-sm space-y-0.5 sm:space-y-1" style={{ color: 'rgba(245,230,200,0.8)' }}>
-              <div className="flex justify-between gap-1">
-                <span className="shrink-0">Gem.</span>
-                <span className="tabular-nums text-right">{avg.toFixed(3)}</span>
+                {isActive && state.currentBeurtCaramboles > 0 && (
+                  <span className="ml-1 sm:ml-2 text-base sm:text-xl font-bold" style={{ color: '#4ade80' }}>
+                    +{state.currentBeurtCaramboles}
+                  </span>
+                )}
               </div>
-              <div className="flex justify-between gap-1">
-                <span className="shrink-0">Moy.</span>
-                <span className="tabular-nums" style={{ color: '#c9a84c' }}>{state.moyenne.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between gap-1">
-                <span className="shrink-0">H. serie</span>
-                <span>{state.highestSerie}</span>
-              </div>
-            </div>
-
-            {/* Current beurt counter */}
-            {isActive && (
-              <div className="mt-2 sm:mt-3 text-center">
-                <div className="text-[0.6rem] sm:text-xs mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.6)' }}>Huidige beurt</div>
-                <div className="text-2xl sm:text-3xl font-bold tabular-nums" style={{ color: '#4ade80' }}>
-                  {state.currentBeurtCaramboles}
+              <div className="text-sm sm:text-base space-y-1 sm:space-y-1.5" style={{ color: 'rgba(245,230,200,0.8)' }}>
+                <div className="flex justify-between gap-1">
+                  <span className="shrink-0">Gem.</span>
+                  <span className="tabular-nums text-right">{avg.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <span className="shrink-0">Te maken car.</span>
+                  <span className="tabular-nums" style={{ color: '#c9a84c' }}>{state.moyenne.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between gap-1">
+                  <span className="shrink-0">H. serie</span>
+                  <span>{state.highestSerie}</span>
                 </div>
               </div>
-            )}
+              {isActive && (
+                <div className="mt-2 sm:mt-3 text-center">
+                  <div className="text-xs sm:text-sm mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.6)' }}>Huidige beurt</div>
+                  <div className="text-2xl sm:text-3xl font-bold tabular-nums" style={{ color: '#4ade80' }}>
+                    {state.currentBeurtCaramboles}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Beurtnummer */}
+        <div className="text-center my-2 sm:my-3">
+          <div className="text-[0.65rem] sm:text-xs uppercase tracking-widest mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.5)' }}>Beurt</div>
+          <div className="tabular-nums" style={{ fontSize: 'clamp(3rem, 18vw, 4.5rem)', fontWeight: 900, lineHeight: 1, color: '#c9a84c' }}>
+            {currentTurnNumber}
           </div>
-        ))}
-      </div>
-
-      {/* Beurtnummer groot in het midden */}
-      <div className="text-center my-2 sm:my-3">
-        <div className="text-[0.65rem] sm:text-xs uppercase tracking-widest mb-0.5 sm:mb-1" style={{ color: 'rgba(245,230,200,0.5)' }}>Beurt</div>
-        <div className="tabular-nums" style={{ fontSize: 'clamp(3rem, 18vw, 4.5rem)', fontWeight: 900, lineHeight: 1, color: '#c9a84c' }}>
-          {currentTurnNumber}
-        </div>
-        <div className="text-xs sm:text-sm mt-1" style={{ color: 'rgba(245,230,200,0.4)' }}>van {MAX_TURNS}</div>
-      </div>
-
-      {/* Controls */}
-      <div className="p-3 sm:p-4" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
-        <div className="text-center mb-2 text-xs sm:text-sm line-clamp-2 px-1" style={{ color: 'rgba(245,230,200,0.6)' }}>
-          {activeState.name} aan de beurt
+          <div className="text-xs sm:text-sm mt-1" style={{ color: 'rgba(245,230,200,0.4)' }}>van {MAX_TURNS}</div>
         </div>
 
-        {/* +1 / teller / -1 */}
-        <div className="flex gap-2 mb-3">
-          <button
-            type="button"
-            onClick={removeCarambole}
-            className="min-h-[56px] min-w-[56px] sm:min-h-[72px] sm:min-w-[72px]"
-            style={{
-              backgroundColor: '#235e3f',
-              border: '2px solid rgba(201,168,76,0.5)',
-              borderRadius: '0.75rem',
-              padding: '0.75rem',
-              fontSize: 'clamp(1.5rem, 6vw, 2rem)',
-              fontWeight: 700,
-              color: 'rgba(201,168,76,0.7)',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-            aria-label="Een carambole minder">
-            −
-          </button>
-          <button
-            type="button"
-            onClick={addCarambole}
-            className="min-h-[56px] sm:min-h-[72px]"
-            style={{
-              flex: 1,
-              backgroundColor: '#235e3f',
-              border: '2px solid #c9a84c',
-              borderRadius: '0.75rem',
-              padding: '1rem 0.75rem',
-              fontSize: 'clamp(1.75rem, 7vw, 3rem)',
-              fontWeight: 700,
-              color: '#c9a84c',
-              cursor: 'pointer',
-            }}
-            aria-label="Carambole toevoegen">
-            + {activeState.currentBeurtCaramboles}
-          </button>
+        {/* Controls */}
+        <div className="p-3 sm:p-4" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' }}>
+          <div className="text-center mb-2 text-xs sm:text-sm line-clamp-2 px-1" style={{ color: 'rgba(245,230,200,0.6)' }}>
+            {activeState.name} aan de beurt
+          </div>
+          <div className="flex gap-2 mb-3">
+            <button type="button" onClick={removeCarambole}
+              className="min-h-[56px] min-w-[56px] sm:min-h-[72px] sm:min-w-[72px]"
+              style={{ backgroundColor: '#235e3f', border: '2px solid rgba(201,168,76,0.5)', borderRadius: '0.75rem', padding: '0.75rem', fontSize: 'clamp(1.5rem, 6vw, 2rem)', fontWeight: 700, color: 'rgba(201,168,76,0.7)', cursor: 'pointer', flexShrink: 0 }}
+              aria-label="Een carambole minder">−</button>
+            <button type="button" onClick={addCarambole}
+              className="min-h-[56px] sm:min-h-[72px]"
+              style={{ flex: 1, backgroundColor: '#235e3f', border: '2px solid #c9a84c', borderRadius: '0.75rem', padding: '1rem 0.75rem', fontSize: 'clamp(1.75rem, 7vw, 3rem)', fontWeight: 700, color: '#c9a84c', cursor: 'pointer' }}
+              aria-label="Carambole toevoegen">+ {activeState.currentBeurtCaramboles}</button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <button type="button" onClick={finishTurn} disabled={submittingTurn} className="min-h-[48px]"
+              style={{ backgroundColor: submittingTurn ? 'rgba(201,168,76,0.4)' : '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.9375rem' }}>
+              {submittingTurn ? '...' : 'Beurt afsluiten →'}
+            </button>
+            <button type="button" onClick={openCorrection} className="min-h-[48px]"
+              style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', fontWeight: 600, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.9375rem' }}>
+              Correctie
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={finishTurn}
-            className="min-h-[48px]"
-            style={{
-              backgroundColor: '#c9a84c',
-              color: '#0d2b1e',
-              fontWeight: 700,
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.9375rem',
-            }}>
-            Beurt afsluiten →
-          </button>
-          <button
-            type="button"
-            onClick={openCorrection}
-            className="min-h-[48px]"
-            style={{
-              backgroundColor: '#235e3f',
-              color: '#f5e6c8',
-              border: '1px solid rgba(201,168,76,0.4)',
-              fontWeight: 600,
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.9375rem',
-            }}>
-            Correctie
-          </button>
+      </div>{/* einde midden */}
+
+      {/* ── Beurtenpaneel speler 2 (rechts) ── */}
+      <div className="shrink-0 sticky top-0" style={{ width: '4.5rem' }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(201,168,76,0.25)', backgroundColor: '#1a4731' }}>
+          <div className="px-1 py-1.5 text-center text-xs font-bold truncate" style={{ backgroundColor: 'rgba(201,168,76,0.15)', color: '#c9a84c', borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+            {p2State.name}
+          </div>
+          <div className="grid grid-cols-2 px-1 py-0.5 text-xs font-semibold text-center" style={{ color: 'rgba(245,230,200,0.5)', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+            <span>#</span><span>Car</span>
+          </div>
+          <div className="overflow-y-auto" style={{ maxHeight: '70dvh' }}>
+            {p2Turns.length === 0 && (
+              <div className="text-center py-3 text-xs" style={{ color: 'rgba(245,230,200,0.25)' }}>–</div>
+            )}
+            {p2Turns.map((t) => (
+              <div key={t.id} className="grid grid-cols-2 text-center text-xs tabular-nums py-0.5"
+                style={{ borderTop: '1px solid rgba(201,168,76,0.08)' }}>
+                <span style={{ color: 'rgba(245,230,200,0.45)' }}>{t.turn_number}</span>
+                <span style={{ color: t.caramboles > 0 ? '#c9a84c' : 'rgba(245,230,200,0.3)', fontWeight: t.caramboles > 0 ? 700 : 400 }}>{t.caramboles}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Correction modal */}
       {showCorrection && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full sm:max-w-[380px] max-h-[85dvh] overflow-y-auto rounded-t-xl sm:rounded-xl" style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', padding: '1.25rem', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
-            <h2 className="text-lg font-bold mb-3" style={{ color: '#c9a84c' }}>
-              Correctie — {activeState.name}
-            </h2>
-            {correctionTurns.length === 0 ? (
-              <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen beurten gespeeld.</p>
-            ) : (
-              <div className="space-y-2 mb-4">
-                {correctionTurns.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3">
-                    <span className="text-sm w-16" style={{ color: 'rgba(245,230,200,0.6)' }}>Beurt {t.turn_number}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={correctionValues[t.id] ?? t.caramboles}
-                      onChange={(e) => setCorrectionValues((prev) => ({ ...prev, [t.id]: parseInt(e.target.value) || 0 }))}
-                      style={{ width: '80px', backgroundColor: '#0d2b1e', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.375rem', padding: '0.25rem 0.5rem' }}
-                    />
-                    <button
-                      onClick={() => saveCorrection(t.id)}
-                      style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
-                      Opslaan
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={() => setShowCorrection(false)}
-              style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', padding: '0.5rem 1rem', borderRadius: '0.375rem', width: '100%' }}>
-              Sluiten
-            </button>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowCorrection(false)}>
+          <div className="w-full sm:max-w-[90vw] sm:w-[480px] max-h-[85dvh] flex flex-col rounded-t-xl sm:rounded-xl"
+            style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+              <h2 className="text-lg font-bold" style={{ color: '#c9a84c' }}>Correctie</h2>
+              <button onClick={() => setShowCorrection(false)}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xl"
+                style={{ color: 'rgba(245,230,200,0.6)' }}>✕</button>
+            </div>
+
+            {/* Scrollable list */}
+            <div className="overflow-y-auto flex-1 px-4 py-3">
+              {correctionTurns.length === 0 ? (
+                <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen beurten gespeeld.</p>
+              ) : (() => {
+                const turnNums = [...new Set(correctionTurns.map((t) => t.turn_number))].sort((a, b) => a - b);
+                const byKey = Object.fromEntries(correctionTurns.map((t) => [`${t.player_id}-${t.turn_number}`, t]));
+                return (
+                  <>
+                    <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 mb-2 text-xs font-semibold text-center" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                      <span>#</span>
+                      <span className="truncate">{p1State?.name}</span>
+                      <span className="truncate">{p2State?.name}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {turnNums.map((num) => {
+                        const t1 = byKey[`${p1State?.id}-${num}`];
+                        const t2 = byKey[`${p2State?.id}-${num}`];
+                        return (
+                          <div key={num} className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 items-center">
+                            <span className="text-sm text-center tabular-nums font-semibold" style={{ color: 'rgba(245,230,200,0.5)' }}>{num}</span>
+                            {[t1, t2].map((t, idx) => t ? (
+                              <input key={t.id}
+                                type="number" min="0"
+                                value={correctionValues[t.id] ?? String(t.caramboles)}
+                                onChange={(e) => setCorrectionValues((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                                style={{ width: '100%', backgroundColor: '#0d2b1e', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.375rem', padding: '0.35rem 0.5rem', textAlign: 'center', fontSize: '1rem' }}
+                              />
+                            ) : (
+                              <span key={idx} className="text-center text-sm" style={{ color: 'rgba(245,230,200,0.25)' }}>–</span>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 flex gap-2 shrink-0" style={{ borderTop: '1px solid rgba(201,168,76,0.2)' }}>
+              <button onClick={() => setShowCorrection(false)}
+                className="flex-1 min-h-[48px]"
+                style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', fontWeight: 600, borderRadius: '0.5rem' }}>
+                Annuleren
+              </button>
+              <button onClick={saveAllCorrections}
+                className="flex-1 min-h-[48px]"
+                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, borderRadius: '0.5rem' }}>
+                Opslaan
+              </button>
+            </div>
           </div>
         </div>
       )}

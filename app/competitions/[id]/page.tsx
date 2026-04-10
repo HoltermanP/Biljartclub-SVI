@@ -7,6 +7,7 @@ import Link from 'next/link';
 interface Standing {
   member_id: number;
   name: string;
+  moyenne: number;
   played: number;
   points: number;
   caramboles: number;
@@ -71,8 +72,15 @@ export default function CompetitionDetailPage() {
   if (loading) return <p style={{ color: 'rgba(245,230,200,0.6)' }}>Laden...</p>;
   if (!data) return <p style={{ color: '#ef4444' }}>Competitie niet gevonden.</p>;
 
-  const { competition, matches, standings } = data;
-  const playedMatches = matches.filter((m) => m.status === 'played');
+  const { competition, members, matches, standings } = data;
+  const playedMatches = matches
+    .filter((m) => m.status === 'played')
+    .sort((a, b) => {
+      if (!a.played_at && !b.played_at) return 0;
+      if (!a.played_at) return 1;
+      if (!b.played_at) return -1;
+      return new Date(b.played_at).getTime() - new Date(a.played_at).getTime();
+    });
   const plannedMatches = matches.filter((m) => m.status === 'planned');
 
   return (
@@ -113,20 +121,20 @@ export default function CompetitionDetailPage() {
         </div>
       </div>
 
-      {tab === 'standings' && <StandingsTab standings={standings} />}
+      {tab === 'standings' && <StandingsTab standings={standings} members={members} />}
       {tab === 'played' && <PlayedTab matches={playedMatches} />}
       {tab === 'planned' && <PlannedTab matches={plannedMatches} onStart={(matchId) => router.push(`/match/${matchId}`)} />}
     </div>
   );
 }
 
-function StandingsTab({ standings }: { standings: Standing[] }) {
+function StandingsTab({ standings, members }: { standings: Standing[]; members: { id: number; name: string; moyenne: number }[] }) {
+  const moyenneById = Object.fromEntries(members.map((m) => [m.id, m.moyenne]));
   return (
     <>
       <div className="space-y-3 md:hidden">
         {standings.map((s, i) => {
-          const avgCar = s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
-          const avgPts = s.played > 0 ? (s.points / s.played).toFixed(2) : '–';
+          const avgPts = s.played > 0 ? Math.round(s.points / s.played) : '–';
           return (
             <div
               key={s.member_id}
@@ -140,7 +148,7 @@ function StandingsTab({ standings }: { standings: Standing[] }) {
                 </div>
                 <div className="shrink-0 text-right">
                   <div className="text-xs" style={{ color: 'rgba(245,230,200,0.5)' }}>Punten</div>
-                  <div className="text-lg font-bold tabular-nums" style={{ color: '#c9a84c' }}>{s.points.toFixed(2)}</div>
+                  <div className="text-lg font-bold tabular-nums" style={{ color: '#c9a84c' }}>{Math.round(s.points)}</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-3">
@@ -153,8 +161,12 @@ function StandingsTab({ standings }: { standings: Standing[] }) {
                   <div className="tabular-nums">{avgPts}</div>
                 </div>
                 <div>
-                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Gem. car.</div>
-                  <div className="tabular-nums">{avgCar}</div>
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Act. car.</div>
+                  <div className="tabular-nums">{s.played > 0 ? Math.round(s.caramboles / s.played) : '–'}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'rgba(245,230,200,0.55)' }}>Te maken car.</div>
+                  <div className="tabular-nums">{(moyenneById[s.member_id] ?? 0) > 0 ? Math.round(moyenneById[s.member_id]) : '–'}</div>
                 </div>
                 <div>
                   <div style={{ color: '#4ade80' }}>Winst</div>
@@ -182,23 +194,23 @@ function StandingsTab({ standings }: { standings: Standing[] }) {
         <table className="w-full">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-              {['#', 'Naam', 'Partijen', 'Punten', 'Gem. punten', 'Gem. caramboles', 'Gewonnen', 'Remise', 'Verloren', 'Hoogste serie'].map((h) => (
+              {['#', 'Naam', 'Partijen', 'Punten', 'Gem. punten', 'Act. car.', 'Te maken car.', 'Gewonnen', 'Remise', 'Verloren', 'Hoogste serie'].map((h) => (
                 <th key={h} className="text-left px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: '#c9a84c' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {standings.map((s, i) => {
-              const avgCar = s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
-              const avgPts = s.played > 0 ? (s.points / s.played).toFixed(2) : '–';
+              const avgPts = s.played > 0 ? Math.round(s.points / s.played) : '–';
               return (
                 <tr key={s.member_id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
                   <td className="px-3 py-3 text-sm font-bold" style={{ color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.6)' }}>{i + 1}</td>
                   <td className="px-3 py-3 font-semibold text-sm">{s.name}</td>
                   <td className="px-3 py-3 text-sm">{s.played}</td>
-                  <td className="px-3 py-3 text-sm font-bold whitespace-nowrap" style={{ color: '#c9a84c' }}>{s.points.toFixed(2)}</td>
+                  <td className="px-3 py-3 text-sm font-bold whitespace-nowrap" style={{ color: '#c9a84c' }}>{Math.round(s.points)}</td>
                   <td className="px-3 py-3 text-sm">{avgPts}</td>
-                  <td className="px-3 py-3 text-sm">{avgCar}</td>
+                  <td className="px-3 py-3 text-sm">{s.played > 0 ? Math.round(s.caramboles / s.played) : '–'}</td>
+                  <td className="px-3 py-3 text-sm">{(moyenneById[s.member_id] ?? 0) > 0 ? Math.round(moyenneById[s.member_id]) : '–'}</td>
                   <td className="px-3 py-3 text-sm" style={{ color: '#4ade80' }}>{s.wins}</td>
                   <td className="px-3 py-3 text-sm" style={{ color: '#facc15' }}>{s.draws}</td>
                   <td className="px-3 py-3 text-sm" style={{ color: '#f87171' }}>{s.losses}</td>
@@ -229,11 +241,11 @@ function PlayedMatchCard({ match: m }: { match: Match }) {
   const p2Avg = m.p2_beurten > 0 ? (m.p2_caramboles / m.p2_beurten).toFixed(3) : '–';
 
   function ptBreakdown(caramboles: number, moyenne: number, won: boolean, isDraw: boolean, aboveMoyenne: boolean) {
-    const base = moyenne > 0 ? (caramboles * 10) / moyenne : 0;
-    const parts = [`${base.toFixed(2)} basis`];
+    const base = moyenne > 0 ? Math.round(Math.min(10, (caramboles / moyenne) * 10)) : 0;
+    const parts = [`${base} basis`];
     if (won) parts.push('+2 winst');
     if (isDraw) parts.push('+1 remise');
-    if (aboveMoyenne) parts.push('+3 boven gem.');
+    if (aboveMoyenne) parts.push('+2 boven gem.');
     return parts.join(', ');
   }
 
@@ -312,16 +324,16 @@ function PlannedTab({ matches, onStart }: { matches: Match[]; onStart: (id: numb
             key={m.id}
             style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
             <div className="text-sm font-semibold mb-2 break-words">
-              <span>⚪ {m.player1_name}</span>
+              <span>{m.player1_name}</span>
               <span className="block text-xs font-normal mt-0.5" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                moy. {parseFloat(String(m.player1_moyenne)).toFixed(2)}
+                {parseFloat(String(m.player1_moyenne)).toFixed(2)} car.
               </span>
             </div>
             <div className="text-center text-xs py-1" style={{ color: 'rgba(245,230,200,0.4)' }}>tegen</div>
             <div className="text-sm font-semibold mb-3 break-words">
-              <span>🟡 {m.player2_name}</span>
+              <span>{m.player2_name}</span>
               <span className="block text-xs font-normal mt-0.5" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                moy. {parseFloat(String(m.player2_moyenne)).toFixed(2)}
+                {parseFloat(String(m.player2_moyenne)).toFixed(2)} car.
               </span>
             </div>
             <button
@@ -349,16 +361,16 @@ function PlannedTab({ matches, onStart }: { matches: Match[]; onStart: (id: numb
             {matches.map((m) => (
               <tr key={m.id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
                 <td className="px-4 py-3">
-                  ⚪ {m.player1_name}
+                  {m.player1_name}
                   <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                    (moy. {parseFloat(String(m.player1_moyenne)).toFixed(2)})
+                    ({parseFloat(String(m.player1_moyenne)).toFixed(2)} car.)
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center" style={{ color: 'rgba(245,230,200,0.4)' }}>vs</td>
                 <td className="px-4 py-3">
-                  🟡 {m.player2_name}
+                  {m.player2_name}
                   <span className="ml-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                    (moy. {parseFloat(String(m.player2_moyenne)).toFixed(2)})
+                    ({parseFloat(String(m.player2_moyenne)).toFixed(2)} car.)
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">

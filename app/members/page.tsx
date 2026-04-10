@@ -105,7 +105,7 @@ export default function MembersPage() {
                 style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem', padding: '1rem' }}>
                 <div className="font-semibold text-base mb-2 break-words" style={{ color: '#f5e6c8' }}>{m.name}</div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mb-3">
-                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Moyenne</dt>
+                  <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Te maken car.</dt>
                   <dd style={{ color: '#c9a84c', fontWeight: 700 }}>{parseFloat(String(m.moyenne)).toFixed(2)}</dd>
                   <dt style={{ color: 'rgba(245,230,200,0.55)' }}>Lid sinds</dt>
                   <dd style={{ color: 'rgba(245,230,200,0.65)' }}>{new Date(m.created_at).toLocaleDateString('nl-NL')}</dd>
@@ -127,7 +127,7 @@ export default function MembersPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
                   <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Naam</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Moyenne</th>
+                  <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Te maken car.</th>
                   <th className="text-left px-4 py-3 text-sm font-semibold" style={{ color: '#c9a84c' }}>Lid sinds</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -179,7 +179,7 @@ export default function MembersPage() {
               />
             </div>
             <div className="mb-6">
-              <label>Moyenne (te maken caramboles)</label>
+              <label>Te maken caramboles</label>
               <input
                 type="number"
                 step="0.01"
