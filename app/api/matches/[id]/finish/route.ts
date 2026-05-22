@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         status='played',
         winner_id=${actualWinnerId},
         is_draw=${isDraw},
-        played_at=NOW(),
+        played_at=COALESCE(played_at, NOW()),
         p1_caramboles=${p1Caramboles},
         p1_beurten=${p1Beurten},
         p1_highest_serie=${p1HighestSerie},

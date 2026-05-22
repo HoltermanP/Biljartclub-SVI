@@ -122,7 +122,7 @@ export default function CompetitionDetailPage() {
       </div>
 
       {tab === 'standings' && <StandingsTab standings={standings} members={members} />}
-      {tab === 'played' && <PlayedTab matches={playedMatches} />}
+      {tab === 'played' && <PlayedTab matches={playedMatches} onOpen={(matchId) => router.push(`/match/${matchId}`)} />}
       {tab === 'planned' && <PlannedTab matches={plannedMatches} onStart={(matchId) => router.push(`/match/${matchId}`)} />}
     </div>
   );
@@ -225,18 +225,18 @@ function StandingsTab({ standings, members }: { standings: Standing[]; members: 
   );
 }
 
-function PlayedTab({ matches }: { matches: Match[] }) {
+function PlayedTab({ matches, onOpen }: { matches: Match[]; onOpen: (id: number) => void }) {
   if (matches.length === 0) {
     return <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen partijen gespeeld.</p>;
   }
   return (
     <div className="space-y-4">
-      {matches.map((m) => <PlayedMatchCard key={m.id} match={m} />)}
+      {matches.map((m) => <PlayedMatchCard key={m.id} match={m} onOpen={onOpen} />)}
     </div>
   );
 }
 
-function PlayedMatchCard({ match: m }: { match: Match }) {
+function PlayedMatchCard({ match: m, onOpen }: { match: Match; onOpen: (id: number) => void }) {
   const p1Avg = m.p1_beurten > 0 ? (m.p1_caramboles / m.p1_beurten).toFixed(3) : '–';
   const p2Avg = m.p2_beurten > 0 ? (m.p2_caramboles / m.p2_beurten).toFixed(3) : '–';
 
@@ -306,6 +306,17 @@ function PlayedMatchCard({ match: m }: { match: Match }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Openen om beurten te corrigeren */}
+      <div className="mt-3 text-right">
+        <button
+          type="button"
+          onClick={() => onOpen(m.id)}
+          className="min-h-[44px] inline-flex items-center justify-center"
+          style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', fontWeight: 600, padding: '0.5rem 1rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
+          Beurten corrigeren
+        </button>
       </div>
     </div>
   );

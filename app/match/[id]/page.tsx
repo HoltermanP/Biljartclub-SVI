@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 interface MatchData {
@@ -73,6 +73,7 @@ export default function MatchPage() {
   const [showCorrection, setShowCorrection] = useState(false);
   const [correctionTurns, setCorrectionTurns] = useState<Turn[]>([]);
   const [correctionValues, setCorrectionValues] = useState<Record<number, string>>({});
+  const [savingCorrections, setSavingCorrections] = useState(false);
 
   // Finish result
   const [finishResult, setFinishResult] = useState<{
@@ -125,8 +126,21 @@ export default function MatchPage() {
   }, [match]);
 
 
-  function handleChooseStart(playerId: number) {
+  async function handleChooseStart(playerId: number) {
     if (!match) return;
+
+    // Server: beurten van een eerdere (afgebroken) registratie wissen.
+    try {
+      await fetch(`/api/matches/${id}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startingPlayerId: playerId }),
+      });
+    } catch {
+      // Genegeerd: de unieke constraint voorkomt alsnog dubbele beurten.
+    }
+    setTurns([]);
+
     setStartingPlayerId(playerId);
     setActivePlayerId(playerId);
 
@@ -225,10 +239,18 @@ export default function MatchPage() {
   }
 
   async function saveAllCorrections() {
+    if (savingCorrections) return;
+    setSavingCorrections(true);
     const changed = correctionTurns.filter((t) => parseInt(correctionValues[t.id]) !== t.caramboles);
     for (const t of changed) {
       await saveCorrection(t.id);
     }
+    // Gespeelde partij: totalen, winnaar en punten opnieuw berekenen
+    if (match?.status === 'played' && changed.length > 0) {
+      await finishMatch();
+      await load();
+    }
+    setSavingCorrections(false);
     setShowCorrection(false);
   }
 
@@ -405,7 +427,14 @@ export default function MatchPage() {
           ))}
         </div>
 
-        <div className="text-center px-1">
+        <div className="flex flex-col sm:flex-row sm:justify-center gap-2 sm:gap-3 px-1">
+          <button
+            type="button"
+            onClick={openCorrection}
+            className="w-full sm:w-auto min-h-[48px]"
+            style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', fontWeight: 600, padding: '0.75rem 2rem', borderRadius: '0.375rem', fontSize: '1rem' }}>
+            Beurten corrigeren
+          </button>
           <button
             type="button"
             onClick={() => router.push(`/competitions/${match.competition_id}`)}
@@ -414,6 +443,21 @@ export default function MatchPage() {
             ← Terug naar competitie
           </button>
         </div>
+
+        {showCorrection && (
+          <CorrectionModal
+            turns={correctionTurns}
+            values={correctionValues}
+            setValues={setCorrectionValues}
+            p1Id={match.player1_id}
+            p1Name={match.player1_name}
+            p2Id={match.player2_id}
+            p2Name={match.player2_name}
+            onClose={() => setShowCorrection(false)}
+            onSave={saveAllCorrections}
+            saving={savingCorrections}
+          />
+        )}
       </div>
     );
   }
@@ -586,77 +630,116 @@ export default function MatchPage() {
 
       {/* Correction modal */}
       {showCorrection && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
-          onClick={() => setShowCorrection(false)}>
-          <div className="w-full sm:max-w-[90vw] sm:w-[480px] max-h-[85dvh] flex flex-col rounded-t-xl sm:rounded-xl"
-            style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-            onClick={(e) => e.stopPropagation()}>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-              <h2 className="text-lg font-bold" style={{ color: '#c9a84c' }}>Correctie</h2>
-              <button onClick={() => setShowCorrection(false)}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xl"
-                style={{ color: 'rgba(245,230,200,0.6)' }}>✕</button>
-            </div>
-
-            {/* Scrollable list */}
-            <div className="overflow-y-auto flex-1 px-4 py-3">
-              {correctionTurns.length === 0 ? (
-                <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen beurten gespeeld.</p>
-              ) : (() => {
-                const turnNums = [...new Set(correctionTurns.map((t) => t.turn_number))].sort((a, b) => a - b);
-                const byKey = Object.fromEntries(correctionTurns.map((t) => [`${t.player_id}-${t.turn_number}`, t]));
-                return (
-                  <>
-                    <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 mb-2 text-xs font-semibold text-center" style={{ color: 'rgba(245,230,200,0.5)' }}>
-                      <span>#</span>
-                      <span className="truncate">{p1State?.name}</span>
-                      <span className="truncate">{p2State?.name}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {turnNums.map((num) => {
-                        const t1 = byKey[`${p1State?.id}-${num}`];
-                        const t2 = byKey[`${p2State?.id}-${num}`];
-                        return (
-                          <div key={num} className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 items-center">
-                            <span className="text-sm text-center tabular-nums font-semibold" style={{ color: 'rgba(245,230,200,0.5)' }}>{num}</span>
-                            {[t1, t2].map((t, idx) => t ? (
-                              <input key={t.id}
-                                type="number" min="0"
-                                value={correctionValues[t.id] ?? String(t.caramboles)}
-                                onChange={(e) => setCorrectionValues((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                                style={{ width: '100%', backgroundColor: '#0d2b1e', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.375rem', padding: '0.35rem 0.5rem', textAlign: 'center', fontSize: '1rem' }}
-                              />
-                            ) : (
-                              <span key={idx} className="text-center text-sm" style={{ color: 'rgba(245,230,200,0.25)' }}>–</span>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-3 flex gap-2 shrink-0" style={{ borderTop: '1px solid rgba(201,168,76,0.2)' }}>
-              <button onClick={() => setShowCorrection(false)}
-                className="flex-1 min-h-[48px]"
-                style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', fontWeight: 600, borderRadius: '0.5rem' }}>
-                Annuleren
-              </button>
-              <button onClick={saveAllCorrections}
-                className="flex-1 min-h-[48px]"
-                style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, borderRadius: '0.5rem' }}>
-                Opslaan
-              </button>
-            </div>
-          </div>
-        </div>
+        <CorrectionModal
+          turns={correctionTurns}
+          values={correctionValues}
+          setValues={setCorrectionValues}
+          p1Id={p1State.id}
+          p1Name={p1State.name}
+          p2Id={p2State.id}
+          p2Name={p2State.name}
+          onClose={() => setShowCorrection(false)}
+          onSave={saveAllCorrections}
+          saving={savingCorrections}
+        />
       )}
+    </div>
+  );
+}
+
+function CorrectionModal({
+  turns,
+  values,
+  setValues,
+  p1Id,
+  p1Name,
+  p2Id,
+  p2Name,
+  onClose,
+  onSave,
+  saving,
+}: {
+  turns: Turn[];
+  values: Record<number, string>;
+  setValues: Dispatch<SetStateAction<Record<number, string>>>;
+  p1Id: number;
+  p1Name: string;
+  p2Id: number;
+  p2Name: string;
+  onClose: () => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      onClick={onClose}>
+      <div className="w-full sm:max-w-[90vw] sm:w-[480px] max-h-[85dvh] flex flex-col rounded-t-xl sm:rounded-xl"
+        style={{ backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.4)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
+          <h2 className="text-lg font-bold" style={{ color: '#c9a84c' }}>Beurten corrigeren</h2>
+          <button onClick={onClose}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-xl"
+            style={{ color: 'rgba(245,230,200,0.6)' }}>✕</button>
+        </div>
+
+        {/* Scrollable list */}
+        <div className="overflow-y-auto flex-1 px-4 py-3">
+          {turns.length === 0 ? (
+            <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen beurten gespeeld.</p>
+          ) : (() => {
+            const turnNums = [...new Set(turns.map((t) => t.turn_number))].sort((a, b) => a - b);
+            const byKey = Object.fromEntries(turns.map((t) => [`${t.player_id}-${t.turn_number}`, t]));
+            return (
+              <>
+                <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 mb-2 text-xs font-semibold text-center" style={{ color: 'rgba(245,230,200,0.5)' }}>
+                  <span>#</span>
+                  <span className="truncate">{p1Name}</span>
+                  <span className="truncate">{p2Name}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {turnNums.map((num) => {
+                    const t1 = byKey[`${p1Id}-${num}`];
+                    const t2 = byKey[`${p2Id}-${num}`];
+                    return (
+                      <div key={num} className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 items-center">
+                        <span className="text-sm text-center tabular-nums font-semibold" style={{ color: 'rgba(245,230,200,0.5)' }}>{num}</span>
+                        {[t1, t2].map((t, idx) => t ? (
+                          <input key={t.id}
+                            type="number" min="0"
+                            value={values[t.id] ?? String(t.caramboles)}
+                            onChange={(e) => setValues((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                            style={{ width: '100%', backgroundColor: '#0d2b1e', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.375rem', padding: '0.35rem 0.5rem', textAlign: 'center', fontSize: '1rem' }}
+                          />
+                        ) : (
+                          <span key={idx} className="text-center text-sm" style={{ color: 'rgba(245,230,200,0.25)' }}>–</span>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 flex gap-2 shrink-0" style={{ borderTop: '1px solid rgba(201,168,76,0.2)' }}>
+          <button onClick={onClose}
+            className="flex-1 min-h-[48px]"
+            style={{ backgroundColor: '#235e3f', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.3)', fontWeight: 600, borderRadius: '0.5rem' }}>
+            Annuleren
+          </button>
+          <button onClick={onSave} disabled={saving}
+            className="flex-1 min-h-[48px]"
+            style={{ backgroundColor: saving ? 'rgba(201,168,76,0.4)' : '#c9a84c', color: '#0d2b1e', fontWeight: 700, borderRadius: '0.5rem' }}>
+            {saving ? 'Opslaan...' : 'Opslaan'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

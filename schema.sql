@@ -55,5 +55,7 @@ CREATE TABLE IF NOT EXISTS turns (
   match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
   player_id INTEGER REFERENCES members(id),
   turn_number INTEGER NOT NULL,
-  caramboles INTEGER NOT NULL DEFAULT 0
+  caramboles INTEGER NOT NULL DEFAULT 0,
+  -- Eén rij per speler per beurtnummer; voorkomt dubbele beurten bij een herstart
+  CONSTRAINT turns_match_player_turn_unique UNIQUE (match_id, player_id, turn_number)
 );

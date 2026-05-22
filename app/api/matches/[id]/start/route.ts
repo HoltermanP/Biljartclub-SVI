@@ -27,6 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Ongeldige beginspeler.' }, { status: 400 });
     }
 
+    // Schone lei: beurten van een eerdere (afgebroken) registratie wissen.
+    await sql`DELETE FROM turns WHERE match_id=${matchId}`;
+
     return NextResponse.json({ success: true, matchId: match.id, startingPlayerId });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
