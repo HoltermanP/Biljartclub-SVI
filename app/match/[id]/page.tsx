@@ -51,6 +51,34 @@ interface PlayerState {
   currentBeurtCaramboles: number;
 }
 
+const MAX_TURNS = 30;
+
+// Onderbroken partij hervatten (bv. na het bekijken van de tussenstand).
+// p1 = beginspeler (⚪), p2 = tweede speler (🟡), zoals bij handleChooseStart.
+function resumeState(m: MatchData, savedTurns: Turn[]) {
+  const player = (id: number, name: string, moyenne: number | string, ball: string): PlayerState => {
+    const pt = savedTurns.filter((t) => t.player_id === id);
+    return {
+      id, name, ball,
+      moyenne: parseFloat(String(moyenne)),
+      totalCaramboles: pt.reduce((sum, t) => sum + t.caramboles, 0),
+      beurten: pt.length,
+      highestSerie: pt.reduce((max, t) => Math.max(max, t.caramboles), 0),
+      currentBeurtCaramboles: 0,
+    };
+  };
+  const starterIsP1 = m.starting_player_id === m.player1_id;
+  const p1 = starterIsP1
+    ? player(m.player1_id, m.player1_name, m.player1_moyenne, '⚪')
+    : player(m.player2_id, m.player2_name, m.player2_moyenne, '⚪');
+  const p2 = starterIsP1
+    ? player(m.player2_id, m.player2_name, m.player2_moyenne, '🟡')
+    : player(m.player1_id, m.player1_name, m.player1_moyenne, '🟡');
+  // Beginspeler is aan de beurt bij gelijke stand, anders de tegenstander
+  const starterNext = p1.beurten <= p2.beurten ? p1.beurten < MAX_TURNS : p2.beurten >= MAX_TURNS;
+  return { p1, p2, activePlayerId: starterNext ? p1.id : p2.id };
+}
+
 export default function MatchPage() {
   const params = useParams();
   const router = useRouter();
@@ -85,8 +113,6 @@ export default function MatchPage() {
     isDraw: boolean;
   } | null>(null);
 
-  const MAX_TURNS = 30;
-
   const load = useCallback(async () => {
     const res = await fetch(`/api/matches/${id}`);
     if (!res.ok) return;
@@ -98,40 +124,16 @@ export default function MatchPage() {
     if (data.match.status === 'played') {
       setPhase('finished');
     } else if (data.match.starting_player_id && data.turns.length > 0) {
-      resume(data.match, data.turns);
+      const r = resumeState(data.match, data.turns);
+      setP1State(r.p1);
+      setP2State(r.p2);
+      setP1TurnCount(r.p1.beurten);
+      setP2TurnCount(r.p2.beurten);
+      setStartingPlayerId(r.p1.id);
+      setActivePlayerId(r.activePlayerId);
+      setPhase('playing');
     }
   }, [id]);
-
-  // Onderbroken partij hervatten (bv. na het bekijken van de tussenstand)
-  function resume(m: MatchData, savedTurns: Turn[]) {
-    const starterIsP1 = m.starting_player_id === m.player1_id;
-    const starter = starterIsP1
-      ? { id: m.player1_id, name: m.player1_name, moyenne: parseFloat(String(m.player1_moyenne)) }
-      : { id: m.player2_id, name: m.player2_name, moyenne: parseFloat(String(m.player2_moyenne)) };
-    const other = starterIsP1
-      ? { id: m.player2_id, name: m.player2_name, moyenne: parseFloat(String(m.player2_moyenne)) }
-      : { id: m.player1_id, name: m.player1_name, moyenne: parseFloat(String(m.player1_moyenne)) };
-    const totals = (playerId: number) => {
-      const pt = savedTurns.filter((t) => t.player_id === playerId);
-      return {
-        totalCaramboles: pt.reduce((sum, t) => sum + t.caramboles, 0),
-        beurten: pt.length,
-        highestSerie: pt.reduce((max, t) => Math.max(max, t.caramboles), 0),
-        currentBeurtCaramboles: 0,
-      };
-    };
-    const s1 = totals(starter.id);
-    const s2 = totals(other.id);
-    setP1State({ ...starter, ball: '⚪', ...s1 });
-    setP2State({ ...other, ball: '🟡', ...s2 });
-    setP1TurnCount(s1.beurten);
-    setP2TurnCount(s2.beurten);
-    setStartingPlayerId(starter.id);
-    // Beginspeler is aan de beurt bij gelijke stand, anders de tegenstander
-    const starterNext = s1.beurten <= s2.beurten ? s1.beurten < MAX_TURNS : s2.beurten >= MAX_TURNS;
-    setActivePlayerId(starterNext ? starter.id : other.id);
-    setPhase('playing');
-  }
 
   useEffect(() => { load(); }, [load]);
 
