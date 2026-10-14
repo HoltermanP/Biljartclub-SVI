@@ -72,6 +72,22 @@ export async function GET() {
       )
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS evenings (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100),
+        played_on DATE NOT NULL DEFAULT CURRENT_DATE,
+        status VARCHAR(10) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Speelavond-partijen: koppeling, eigen te maken caramboles en beginspeler
+    await sql`ALTER TABLE matches ADD COLUMN IF NOT EXISTS evening_id INTEGER REFERENCES evenings(id) ON DELETE CASCADE`;
+    await sql`ALTER TABLE matches ADD COLUMN IF NOT EXISTS p1_moyenne DECIMAL(5,2)`;
+    await sql`ALTER TABLE matches ADD COLUMN IF NOT EXISTS p2_moyenne DECIMAL(5,2)`;
+    await sql`ALTER TABLE matches ADD COLUMN IF NOT EXISTS starting_player_id INTEGER REFERENCES members(id)`;
+
     return NextResponse.json({ success: true, message: 'Schema aangemaakt.' });
   } catch (error) {
     console.error('Setup error:', error);

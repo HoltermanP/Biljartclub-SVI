@@ -29,6 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Schone lei: beurten van een eerdere (afgebroken) registratie wissen.
     await sql`DELETE FROM turns WHERE match_id=${matchId}`;
+    await sql`UPDATE matches SET starting_player_id=${startingPlayerId} WHERE id=${matchId}`;
 
     return NextResponse.json({ success: true, matchId: match.id, startingPlayerId });
   } catch (error) {

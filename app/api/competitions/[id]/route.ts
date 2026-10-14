@@ -26,9 +26,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       SELECT
         m.*,
         p1.name as player1_name,
-        COALESCE(cm1.moyenne, p1.moyenne) as player1_moyenne,
+        COALESCE(m.p1_moyenne, cm1.moyenne, p1.moyenne) as player1_moyenne,
         p2.name as player2_name,
-        COALESCE(cm2.moyenne, p2.moyenne) as player2_moyenne,
+        COALESCE(m.p2_moyenne, cm2.moyenne, p2.moyenne) as player2_moyenne,
         w.name as winner_name
       FROM matches m
       JOIN members p1 ON p1.id = m.player1_id

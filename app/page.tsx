@@ -55,7 +55,7 @@ export default async function Dashboard() {
         <StatCard label="Gespeelde partijen" value={stats.totalPlayed} icon="🎱" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <NavCard
           title="Ledenbeheer"
           description="Bekijk, voeg toe of bewerk clubleden en hun moyennes."
@@ -67,6 +67,12 @@ export default async function Dashboard() {
           description="Beheer competities, bekijk ranglijsten en gespeelde partijen."
           href="/competitions"
           icon="🏆"
+        />
+        <NavCard
+          title="Speelavonden"
+          description="Losse partijen per avond, tussenstand en speler van de avond."
+          href="/evenings"
+          icon="🎱"
         />
       </div>
 

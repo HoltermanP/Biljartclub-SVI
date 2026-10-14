@@ -11,9 +11,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       SELECT
         m.*,
         p1.name as player1_name,
-        COALESCE(cm1.moyenne, p1.moyenne) as player1_moyenne,
+        COALESCE(m.p1_moyenne, cm1.moyenne, p1.moyenne) as player1_moyenne,
         p2.name as player2_name,
-        COALESCE(cm2.moyenne, p2.moyenne) as player2_moyenne,
+        COALESCE(m.p2_moyenne, cm2.moyenne, p2.moyenne) as player2_moyenne,
         w.name as winner_name
       FROM matches m
       JOIN members p1 ON p1.id = m.player1_id
@@ -37,6 +37,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     `;
 
     return NextResponse.json({ match: matchResult[0], turns });
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+// Alleen een nog niet afgeronde partij van een speelavond mag weg (bv. verkeerd aangemaakt).
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const sql = getDb();
+    const result = await sql`
+      DELETE FROM matches
+      WHERE id=${parseInt(id)} AND evening_id IS NOT NULL AND status <> 'played'
+      RETURNING id
+    `;
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Alleen niet-afgeronde partijen van een speelavond kunnen worden verwijderd.' }, { status: 400 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

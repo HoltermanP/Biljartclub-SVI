@@ -22,10 +22,25 @@ CREATE TABLE IF NOT EXISTS competition_members (
   UNIQUE(competition_id, member_id)
 );
 
--- Partijen (gepland en gespeeld)
+-- Speelavonden (losse partijen buiten een competitie)
+CREATE TABLE IF NOT EXISTS evenings (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  played_on DATE NOT NULL DEFAULT CURRENT_DATE,
+  status VARCHAR(10) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Partijen (gepland en gespeeld); hoort bij een competitie óf een speelavond
 CREATE TABLE IF NOT EXISTS matches (
   id SERIAL PRIMARY KEY,
   competition_id INTEGER REFERENCES competitions(id) ON DELETE CASCADE,
+  evening_id INTEGER REFERENCES evenings(id) ON DELETE CASCADE,
+  -- Te maken caramboles vastgelegd bij de partij (speelavond); NULL = uit competitie/lid
+  p1_moyenne DECIMAL(5,2),
+  p2_moyenne DECIMAL(5,2),
+  -- Beginspeler, nodig om een onderbroken partij te hervatten
+  starting_player_id INTEGER REFERENCES members(id),
   player1_id INTEGER REFERENCES members(id),
   player2_id INTEGER REFERENCES members(id),
   leg INTEGER NOT NULL DEFAULT 1,

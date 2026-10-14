@@ -33,6 +33,7 @@ export default function RootLayout({
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:gap-6 sm:justify-end">
                 <Link href="/members" className="min-h-[44px] inline-flex items-center py-2 hover:underline active:opacity-80" style={{ color: '#f5e6c8' }}>Leden</Link>
                 <Link href="/competitions" className="min-h-[44px] inline-flex items-center py-2 hover:underline active:opacity-80" style={{ color: '#f5e6c8' }}>Competities</Link>
+                <Link href="/evenings" className="min-h-[44px] inline-flex items-center py-2 hover:underline active:opacity-80" style={{ color: '#f5e6c8' }}>Speelavonden</Link>
                 <div className="min-h-[44px] flex items-center">
                   <NavAuth />
                 </div>

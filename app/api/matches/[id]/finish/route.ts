@@ -10,8 +10,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const matchResult = await sql`
       SELECT m.*,
-        COALESCE(cm1.moyenne, p1.moyenne) as player1_moyenne,
-        COALESCE(cm2.moyenne, p2.moyenne) as player2_moyenne
+        COALESCE(m.p1_moyenne, cm1.moyenne, p1.moyenne) as player1_moyenne,
+        COALESCE(m.p2_moyenne, cm2.moyenne, p2.moyenne) as player2_moyenne
       FROM matches m
       JOIN members p1 ON p1.id = m.player1_id
       JOIN members p2 ON p2.id = m.player2_id

@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 
 interface MatchData {
   id: number;
-  competition_id: number;
+  competition_id: number | null;
+  evening_id: number | null;
+  starting_player_id: number | null;
   player1_id: number;
   player2_id: number;
   player1_name: string;
@@ -95,14 +97,47 @@ export default function MatchPage() {
 
     if (data.match.status === 'played') {
       setPhase('finished');
+    } else if (data.match.starting_player_id && data.turns.length > 0) {
+      resume(data.match, data.turns);
     }
   }, [id]);
+
+  // Onderbroken partij hervatten (bv. na het bekijken van de tussenstand)
+  function resume(m: MatchData, savedTurns: Turn[]) {
+    const starterIsP1 = m.starting_player_id === m.player1_id;
+    const starter = starterIsP1
+      ? { id: m.player1_id, name: m.player1_name, moyenne: parseFloat(String(m.player1_moyenne)) }
+      : { id: m.player2_id, name: m.player2_name, moyenne: parseFloat(String(m.player2_moyenne)) };
+    const other = starterIsP1
+      ? { id: m.player2_id, name: m.player2_name, moyenne: parseFloat(String(m.player2_moyenne)) }
+      : { id: m.player1_id, name: m.player1_name, moyenne: parseFloat(String(m.player1_moyenne)) };
+    const totals = (playerId: number) => {
+      const pt = savedTurns.filter((t) => t.player_id === playerId);
+      return {
+        totalCaramboles: pt.reduce((sum, t) => sum + t.caramboles, 0),
+        beurten: pt.length,
+        highestSerie: pt.reduce((max, t) => Math.max(max, t.caramboles), 0),
+        currentBeurtCaramboles: 0,
+      };
+    };
+    const s1 = totals(starter.id);
+    const s2 = totals(other.id);
+    setP1State({ ...starter, ball: '⚪', ...s1 });
+    setP2State({ ...other, ball: '🟡', ...s2 });
+    setP1TurnCount(s1.beurten);
+    setP2TurnCount(s2.beurten);
+    setStartingPlayerId(starter.id);
+    // Beginspeler is aan de beurt bij gelijke stand, anders de tegenstander
+    const starterNext = s1.beurten <= s2.beurten ? s1.beurten < MAX_TURNS : s2.beurten >= MAX_TURNS;
+    setActivePlayerId(starterNext ? starter.id : other.id);
+    setPhase('playing');
+  }
 
   useEffect(() => { load(); }, [load]);
 
   // Initialize player states from match (balls worden pas toegewezen na startkeuze)
   useEffect(() => {
-    if (!match) return;
+    if (!match || match.starting_player_id) return;
     setP1State({
       id: match.player1_id,
       name: match.player1_name,
@@ -437,10 +472,10 @@ export default function MatchPage() {
           </button>
           <button
             type="button"
-            onClick={() => router.push(`/competitions/${match.competition_id}`)}
+            onClick={() => router.push(match.evening_id ? `/evenings/${match.evening_id}` : `/competitions/${match.competition_id}`)}
             className="w-full sm:w-auto min-h-[48px]"
             style={{ backgroundColor: '#c9a84c', color: '#0d2b1e', fontWeight: 700, padding: '0.75rem 2rem', borderRadius: '0.375rem', fontSize: '1rem' }}>
-            ← Terug naar competitie
+            {match.evening_id ? '← Terug naar speelavond' : '← Terug naar competitie'}
           </button>
         </div>
 
