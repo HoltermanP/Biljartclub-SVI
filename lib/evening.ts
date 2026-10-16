@@ -1,17 +1,17 @@
 /**
- * Stand van een speelavond
+ * Stand van een speelavond, of van alle speelavonden samen
  *
- * Volgorde (speler van de avond):
- *   1. punten
- *   2. caramboles
+ * Volgorde (speler van de avond / totaalstand):
+ *   1. gemiddeld aantal punten per partij (zo telt het aantal partijen niet mee)
+ *   2. gemiddelde (caramboles / beurten)
  *   3. hoogste serie
- *   4. gemiddelde (caramboles / beurten)
- *   5. aantal overwinningen
+ *   4. aantal gespeelde partijen
  *
  * Alleen afgeronde partijen tellen mee.
  */
 
 export interface EveningMatchRow {
+  evening_id?: number | null;
   status: string;
   player1_id: number;
   player2_id: number;
@@ -33,7 +33,9 @@ export interface EveningStanding {
   member_id: number;
   name: string;
   played: number;
+  evenings: number;
   points: number;
+  avg_points: number;
   caramboles: number;
   beurten: number;
   highest_serie: number;
@@ -48,20 +50,20 @@ function average(s: EveningStanding) {
 
 export function compareStandings(a: EveningStanding, b: EveningStanding) {
   return (
-    b.points - a.points ||
-    b.caramboles - a.caramboles ||
-    b.highest_serie - a.highest_serie ||
+    b.avg_points - a.avg_points ||
     average(b) - average(a) ||
-    b.wins - a.wins
+    b.highest_serie - a.highest_serie ||
+    b.played - a.played
   );
 }
 
 export function computeEveningStandings(matches: EveningMatchRow[]): EveningStanding[] {
   const standings: Record<number, EveningStanding> = {};
+  const eveningsPlayed: Record<number, Set<number>> = {};
   const entry = (id: number, name: string) =>
     (standings[id] ??= {
-      member_id: id, name, played: 0, points: 0, caramboles: 0, beurten: 0,
-      highest_serie: 0, wins: 0, draws: 0, losses: 0,
+      member_id: id, name, played: 0, evenings: 0, points: 0, avg_points: 0,
+      caramboles: 0, beurten: 0, highest_serie: 0, wins: 0, draws: 0, losses: 0,
     });
 
   for (const m of matches) {
@@ -79,10 +81,16 @@ export function computeEveningStandings(matches: EveningMatchRow[]): EveningStan
       if (m.is_draw) s.draws++;
       else if (m.winner_id === id) s.wins++;
       else s.losses++;
+      if (m.evening_id != null) (eveningsPlayed[id] ??= new Set()).add(m.evening_id);
     }
   }
 
-  return Object.values(standings).sort(compareStandings);
+  const out = Object.values(standings);
+  for (const s of out) {
+    s.avg_points = s.played > 0 ? s.points / s.played : 0;
+    s.evenings = eveningsPlayed[s.member_id]?.size ?? 0;
+  }
+  return out.sort(compareStandings);
 }
 
 // played_on komt binnen als 'YYYY-MM-DD' of ISO-string; alleen de datum telt.

@@ -31,7 +31,9 @@ export async function GET() {
       )[0];
       return { ...e, best_player_name: best?.name ?? null };
     });
-    return NextResponse.json(out);
+    // Totaalstand over alle gespeelde partijen van alle speelavonden
+    const overall = computeEveningStandings(matches as unknown as EveningMatchRow[]);
+    return NextResponse.json({ evenings: out, overall });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { eveningTitle, type EveningStanding } from '@/lib/evening';
+import StandingsTable, { avg, avgPoints } from '@/app/components/StandingsTable';
 
 interface LiveScore {
   caramboles: number;
@@ -52,10 +53,6 @@ interface EveningData {
 const card = { backgroundColor: '#1a4731', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '0.75rem' };
 const muted = { color: 'rgba(245,230,200,0.55)' };
 const inputStyle = { backgroundColor: '#0d2b1e', color: '#f5e6c8', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', width: '100%' };
-
-function avg(s: { caramboles: number; beurten: number }) {
-  return s.beurten > 0 ? (s.caramboles / s.beurten).toFixed(3) : '–';
-}
 
 export default function EveningPage() {
   const params = useParams();
@@ -144,7 +141,7 @@ export default function EveningPage() {
           </div>
           <div className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: '#c9a84c' }}>🏆 {best.name}</div>
           <div className="text-sm" style={{ color: 'rgba(245,230,200,0.75)' }}>
-            {Math.round(best.points)} punten · {best.caramboles} caramboles · hoogste serie {best.highest_serie} · gem. {avg(best)}
+            {avgPoints(best)} pt per partij ({best.played} {best.played === 1 ? 'partij' : 'partijen'}) · hoogste serie {best.highest_serie} · gem. {avg(best)}
           </div>
         </div>
       )}
@@ -194,7 +191,8 @@ export default function EveningPage() {
           <StandingsTable standings={standings} />
         )}
         <p className="mt-2 text-xs" style={{ color: 'rgba(245,230,200,0.45)' }}>
-          Volgorde: punten, dan caramboles, dan hoogste serie, dan gemiddelde.
+          Volgorde: gemiddeld aantal punten per partij, dan gemiddelde, dan hoogste serie.{' '}
+          <Link href="/evenings" className="underline" style={{ color: 'rgba(245,230,200,0.65)' }}>Totaalstand alle speelavonden →</Link>
         </p>
       </section>
 
@@ -248,75 +246,6 @@ function PlayedSide({ name, car, pts, serie, won, alignRight }: { name: string; 
       <div className="text-xs tabular-nums" style={muted}>
         {car} car · serie {serie} · <span style={{ color: '#c9a84c', fontWeight: 700 }}>{Math.round(parseFloat(String(pts)) || 0)} pt</span>
       </div>
-    </div>
-  );
-}
-
-function StandingsTable({ standings }: { standings: EveningStanding[] }) {
-  return (
-    <>
-      <div className="space-y-3 md:hidden">
-        {standings.map((s, i) => (
-          <div key={s.member_id} style={{ ...card, padding: '1rem' }}>
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="min-w-0 flex-1">
-                <span className="mr-2 inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded text-sm font-bold" style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.75)' }}>
-                  {i + 1}
-                </span>
-                <span className="font-semibold break-words">{s.name}</span>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-xs" style={muted}>Punten</div>
-                <div className="text-lg font-bold tabular-nums" style={{ color: '#c9a84c' }}>{Math.round(s.points)}</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
-              <Stat label="Partijen" value={s.played} />
-              <Stat label="Caramboles" value={s.caramboles} />
-              <Stat label="Hoogste serie" value={s.highest_serie} />
-              <Stat label="Gemiddelde" value={avg(s)} />
-              <Stat label="W / R / V" value={`${s.wins} / ${s.draws} / ${s.losses}`} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="hidden md:block" style={card}>
-        <table className="w-full">
-          <thead>
-            <tr style={{ borderBottom: '1px solid rgba(201,168,76,0.2)' }}>
-              {['#', 'Naam', 'Partijen', 'Punten', 'Caramboles', 'Hoogste serie', 'Gemiddelde', 'Gewonnen', 'Remise', 'Verloren'].map((h) => (
-                <th key={h} className="text-left px-3 py-3 text-sm font-semibold whitespace-nowrap" style={{ color: '#c9a84c' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s, i) => (
-              <tr key={s.member_id} style={{ borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-                <td className="px-3 py-3 text-sm font-bold" style={{ color: i === 0 ? '#c9a84c' : 'rgba(245,230,200,0.75)' }}>{i + 1}</td>
-                <td className="px-3 py-3 text-sm font-semibold">{i === 0 && '🏆 '}{s.name}</td>
-                <td className="px-3 py-3 text-sm tabular-nums">{s.played}</td>
-                <td className="px-3 py-3 text-sm font-bold tabular-nums" style={{ color: '#c9a84c' }}>{Math.round(s.points)}</td>
-                <td className="px-3 py-3 text-sm tabular-nums">{s.caramboles}</td>
-                <td className="px-3 py-3 text-sm tabular-nums">{s.highest_serie}</td>
-                <td className="px-3 py-3 text-sm tabular-nums">{avg(s)}</td>
-                <td className="px-3 py-3 text-sm tabular-nums" style={{ color: '#4ade80' }}>{s.wins}</td>
-                <td className="px-3 py-3 text-sm tabular-nums" style={{ color: '#facc15' }}>{s.draws}</td>
-                <td className="px-3 py-3 text-sm tabular-nums" style={{ color: '#f87171' }}>{s.losses}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div>
-      <div style={muted}>{label}</div>
-      <div className="tabular-nums">{value}</div>
     </div>
   );
 }

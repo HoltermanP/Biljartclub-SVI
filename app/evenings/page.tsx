@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { eveningTitle } from '@/lib/evening';
+import { eveningTitle, type EveningStanding } from '@/lib/evening';
+import StandingsTable from '@/app/components/StandingsTable';
 
 interface Evening {
   id: number;
@@ -23,6 +24,7 @@ function todayIso() {
 export default function EveningsPage() {
   const router = useRouter();
   const [evenings, setEvenings] = useState<Evening[]>([]);
+  const [overall, setOverall] = useState<EveningStanding[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState('');
@@ -33,7 +35,11 @@ export default function EveningsPage() {
   async function load() {
     setLoading(true);
     const res = await fetch('/api/evenings');
-    if (res.ok) setEvenings(await res.json());
+    if (res.ok) {
+      const d = await res.json();
+      setEvenings(d.evenings);
+      setOverall(d.overall);
+    }
     setLoading(false);
   }
 
@@ -93,6 +99,17 @@ export default function EveningsPage() {
           <p style={{ color: 'rgba(245,230,200,0.6)' }}>Nog geen speelavonden. Start een nieuwe avond en maak de eerste partij aan.</p>
         </div>
       ) : (
+        <>
+        {overall.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-lg font-bold mb-3" style={{ color: '#c9a84c' }}>Totaalstand alle speelavonden</h2>
+            <StandingsTable standings={overall} showEvenings />
+            <p className="mt-2 text-xs" style={{ color: 'rgba(245,230,200,0.45)' }}>
+              Alle afgeronde partijen tellen mee. Volgorde: gemiddeld aantal punten per partij, dan gemiddelde, dan hoogste serie.
+            </p>
+          </section>
+        )}
+        <h2 className="text-lg font-bold mb-3" style={{ color: '#c9a84c' }}>Avonden</h2>
         <div className="space-y-3">
           {evenings.map((e) => (
             <div key={e.id}
@@ -131,6 +148,7 @@ export default function EveningsPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {showForm && (
